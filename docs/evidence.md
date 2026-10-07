@@ -1,6 +1,6 @@
 # Evidence — Đối chiếu thiết kế, code và tests
 
-Trạng thái ngày 07/10/2026: **mới có tài liệu thiết kế; chưa có repository ứng dụng để kiểm chứng**. Tên file/test dưới đây là dự kiến. Khi triển khai, thay đường dẫn bằng đường dẫn thực và điền link kết quả; không đánh dấu hoàn tất chỉ vì tên file đã tồn tại.
+Trạng thái ngày 07/10/2026: **mới có tài liệu thiết kế; chưa có mã nguồn ứng dụng để kiểm chứng**. Tên file/test dưới đây là dự kiến. Khi triển khai, thay đường dẫn bằng đường dẫn thực và điền link kết quả; không đánh dấu hoàn tất chỉ vì tên file đã tồn tại.
 
 ## 1. Cấu trúc repository dự kiến
 
