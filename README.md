@@ -23,13 +23,14 @@ Các sơ đồ dùng Mermaid và có thể xem khi mở Markdown trên GitHub.
 | Architecture context | Tài liệu thiết kế | Team xác nhận các giả định |
 | Two views | Hai tài liệu và sơ đồ | Đối chiếu với code sau khi triển khai |
 | One ADR | ADR đầy đủ, trạng thái Proposed | Team chấp nhận quyết định |
-| Tasks | Backlog M0–M6 và tiêu chí hoàn thành | Team phân công owner và cập nhật trạng thái |
-| Evidence | Bảng truy vết thiết kế → code → tests và tiêu chí kiểm chứng | Code, tests chạy thành công, pipeline, dashboard và incident thực nghiệm |
+| Booking API | FastAPI, PostgreSQL, Alembic; 21 tests pass cục bộ | CI và kiểm chứng trên môi trường dùng chung |
+| Tasks | Backlog M0–M6; TASK-002 hoàn thành | Team phân công owner cho các task còn lại |
+| Evidence | Bảng truy vết và kết quả E01–E05 cục bộ | Pipeline, dashboard và incident thực nghiệm |
 
-Repository hiện mới có tài liệu thiết kế, chưa có mã nguồn ứng dụng để kiểm tra. Bộ này không chứa ứng dụng chạy được và không khẳng định có test, deployment hoặc SLO đã đạt.
+Repository hiện có tài liệu thiết kế và Booking API backend. Chưa có React UI, deployment, observability hoặc kết quả SLO; kết quả test hiện tại mới được kiểm chứng cục bộ với PostgreSQL 16.
 
-## Bước triển khai đầu tiên
+## Bước tiếp theo
 
-Team xác nhận kiến trúc và phân công owner trong [Tasks](docs/tasks/README.md), rồi triển khai một lát cắt nhỏ: FastAPI → PostgreSQL → tạo/xem/hủy lịch → tests với PostgreSQL thật → React UI. Cấu trúc mã nguồn dự kiến nằm trong `docs/evidence.md`; các đường dẫn chưa được triển khai được ghi rõ là dự kiến.
+Team xác nhận kiến trúc và phân công owner trong [Tasks](docs/tasks/README.md), sau đó triển khai [TASK-003 — React UI](docs/tasks/TASK-003-react-ui.md) trên Booking API đã có. Cấu trúc mã nguồn và trạng thái kiểm chứng nằm trong `docs/evidence.md`.
 
-Sau khi lát cắt này chạy được, thêm Docker, CI, release/deploy, telemetry và incident drill theo các mốc trong tài liệu Evidence.
+Sau khi UI chạy được, thêm container, CI, release/deploy, telemetry và incident drill theo các mốc trong tài liệu Evidence.

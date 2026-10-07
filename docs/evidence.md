@@ -1,17 +1,17 @@
 # Evidence — Đối chiếu thiết kế, code và tests
 
-Trạng thái ngày 07/10/2026: **mới có tài liệu thiết kế; chưa có mã nguồn ứng dụng để kiểm chứng**. Tên file/test dưới đây là dự kiến. Khi triển khai, thay đường dẫn bằng đường dẫn thực và điền link kết quả; không đánh dấu hoàn tất chỉ vì tên file đã tồn tại.
+Trạng thái ngày 07/10/2026: **đã có Booking API backend và kết quả test cục bộ; chưa có frontend, CI/CD, deployment hoặc observability**. Các đường dẫn chưa được triển khai vẫn là dự kiến và không được xem là hoàn thành chỉ vì đã có trong thiết kế.
 
 ## 1. Cấu trúc repository dự kiến
 
 | Nhóm | Các đường dẫn chính cần tạo | Liên hệ thiết kế |
 | --- | --- | --- |
 | Frontend | `frontend/src/pages/BookingPage.tsx`, `frontend/src/components/`, `frontend/src/api/appointments.ts` | UI và HTTP client trong module view |
-| Bootstrap/API | `backend/app/main.py`, `config.py`, `api/appointments.py`, `api/health.py`, `api/version.py`, `api/slots.py`, `schemas/appointment.py` | Hợp đồng API và wiring |
-| Business/data | `backend/app/services/booking.py`, `repositories/appointments.py`, `models/appointment.py`, `db.py`, `domain/errors.py` | Hướng API → service → repository → DB |
-| Migrations | `backend/alembic/versions/` | Transaction/schema, uniqueness của active booking |
+| Bootstrap/API | `backend/app/main.py`, `config.py`, `api/appointments.py`, `api/health.py`, `api/version.py`, `api/slots.py`, `schemas/appointment.py` — đã có | Hợp đồng API và wiring |
+| Business/data | `backend/app/services/booking.py`, `repositories/appointments.py`, `models/appointment.py`, `db.py`, `domain/errors.py` — đã có | Hướng API → service → repository → DB |
+| Migrations | `backend/alembic/versions/` — đã có migration đầu tiên | Transaction/schema, uniqueness của active booking |
 | Telemetry | `backend/app/telemetry/` | HTTP metrics, spans, log correlation |
-| Tests | `backend/tests/unit/`, `backend/tests/integration/`, `frontend/tests/`, `tests/e2e/`, `tests/load/` | Kiểm chứng quy tắc và hệ thống |
+| Tests | `backend/tests/unit/`, `backend/tests/integration/` — đã có; frontend/E2E/load chưa có | Kiểm chứng quy tắc và hệ thống |
 | Container/deploy | `frontend/Dockerfile`, `backend/Dockerfile`, `deploy/compose.yaml`, `deploy/compose.production.yaml` | ADR-001 và runtime services |
 | CI/CD | `.github/workflows/ci.yml`, `release.yml`, `rollback.yml`, `scripts/deploy.sh`, `scripts/rollback.sh` | Gates, release manifest và recovery |
 | Observability | `observability/collector/`, `prometheus/`, `blackbox/`, `grafana/`, `tempo/`, `loki/`, `alertmanager/` | Telemetry routing và alert |
@@ -23,11 +23,11 @@ Các đường dẫn backend viết ngắn ở cùng hàng được hiểu là n
 
 | ID | Cam kết thiết kế | Code/config dự kiến | Test hoặc thực nghiệm cần có | Tiêu chí pass | Trạng thái |
 | --- | --- | --- | --- | --- | --- |
-| E01 | API đáp ứng và readiness phản ánh DB | `api/health.py` | `test_liveness_without_db`, `test_readiness_when_db_unavailable` | Live 200; DB lỗi thì ready 503 với timeout hữu hạn | Chưa kiểm chứng |
-| E02 | Tạo booking lưu bền vững | Service, repository, model | `test_create_booking_persists` với PostgreSQL | 201; đọc lại đúng dữ liệu sau commit | Chưa kiểm chứng |
-| E03 | Không đặt trùng slot đồng thời | Partial unique index + lỗi domain | `test_concurrent_booking_same_slot` | Hai request độc lập: một 201, một 409; đúng một active row | Chưa kiểm chứng |
-| E04 | Slot đúng quy tắc và timezone | Schema/service | `test_invalid_slot`, `test_past_slot`, `test_timezone_normalization` | Từ chối slot sai; cùng thời điểm ở hai offset quy về cùng slot | Chưa kiểm chứng |
-| E05 | Hủy giữ lịch sử và cho đặt lại | Service/repository | `test_cancel_is_idempotent`, `test_rebook_cancelled_slot`, `test_cancel_unknown_id` | 204 khi hủy/lặp lại; bản ghi cancelled còn; đặt lại 201; ID lạ 404 | Chưa kiểm chứng |
+| E01 | API đáp ứng và readiness phản ánh DB | `api/health.py` | `test_liveness_does_not_resolve_database_dependency`, `test_readiness_returns_503_when_database_is_unavailable` | Live 200; DB lỗi thì ready 503 với timeout hữu hạn | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
+| E02 | Tạo booking lưu bền vững | Service, repository, model | `test_create_booking_persists` với PostgreSQL | 201; đọc lại đúng dữ liệu sau commit | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
+| E03 | Không đặt trùng slot đồng thời | Partial unique index + lỗi domain | `test_concurrent_booking_same_slot` | Hai request độc lập: một 201, một 409; đúng một active row | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
+| E04 | Slot đúng quy tắc và timezone | Schema/service | `test_normalize_start_time_rejects_invalid_slots`, `test_normalize_start_time_converts_to_utc` | Từ chối slot sai; chuẩn hóa về UTC theo lịch `Asia/Ho_Chi_Minh` | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
+| E05 | Hủy giữ lịch sử và cho đặt lại | Service/repository | `test_cancel_is_idempotent_and_allows_rebooking`, `test_cancel_unknown_id_returns_404` | 204 khi hủy/lặp lại; bản ghi cancelled còn; đặt lại 201; ID lạ 404 | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
 | E06 | UI phản ánh response thật | BookingPage + HTTP client | Frontend tests và E2E | Loading/error/success đúng; 409 không hiển thị thành công | Chưa kiểm chứng |
 | E07 | Lỗi code chặn phát hành | `ci.yml`, `release.yml` | Một PR cố ý fail test ở branch demo | CI fail; không deploy qua pipeline chuẩn | Chưa kiểm chứng |
 | E08 | Định danh release truy vết được | Manifest + `/api/version` | So tag/SHA/digest với deployment | Version API khớp manifest và images đang chạy | Chưa kiểm chứng |
