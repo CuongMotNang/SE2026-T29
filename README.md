@@ -1,6 +1,6 @@
 # Production Readiness Lab — Bộ tài liệu kiến trúc
 
-Ngày: 07/10/2026 · Ngôn ngữ: Tiếng Việt · Trạng thái: thiết kế đề xuất để triển khai.
+Trạng thái: thiết kế đề xuất để triển khai.
 
 Đây là bộ tài liệu cho dịch vụ đặt lịch nhỏ, hướng tới trình diễn CI/CD, container, quan sát hệ thống, cảnh báo và rollback. Tài liệu gồm kiến trúc, kế hoạch task và bảng đối chiếu thiết kế với repository/tests.
 
