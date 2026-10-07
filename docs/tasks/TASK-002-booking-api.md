@@ -1,7 +1,7 @@
 # TASK-002 — Xây dựng Booking API
 
-- Trạng thái: **Todo**
-- Người phụ trách: **Chưa phân công**
+- Trạng thái: **In Progress**
+- Người phụ trách: **Phạm Minh Cương**
 - Mốc: **M1 — Booking API**
 - Phụ thuộc: TASK-001
 

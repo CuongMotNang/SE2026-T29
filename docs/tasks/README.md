@@ -7,7 +7,7 @@ Các task dưới đây chuyển các mốc M0–M6 trong [Evidence](../evidence
 | ID | Task | Mốc | Trạng thái | Người phụ trách | Phụ thuộc |
 | --- | --- | --- | --- | --- | --- |
 | TASK-001 | [Xác nhận kiến trúc](TASK-001-confirm-architecture.md) | M0 | In review | Chưa phân công | Không |
-| TASK-002 | [Xây dựng Booking API](TASK-002-booking-api.md) | M1 | Todo | Chưa phân công | TASK-001 |
+| TASK-002 | [Xây dựng Booking API](TASK-002-booking-api.md) | M1 | In Progress | Phạm Minh Cương | TASK-001 |
 | TASK-003 | [Xây dựng React UI](TASK-003-react-ui.md) | M2 | Todo | Chưa phân công | TASK-002 |
 | TASK-004 | [Container hóa và CI](TASK-004-container-ci.md) | M3 | Todo | Chưa phân công | TASK-002, TASK-003 |
 | TASK-005 | [Release, deploy và rollback](TASK-005-release-deploy.md) | M4 | Todo | Chưa phân công | TASK-004 |

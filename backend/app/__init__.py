@@ -1,0 +1,1 @@
+"""Booking API application package."""
