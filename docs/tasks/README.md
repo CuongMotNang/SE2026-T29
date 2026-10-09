@@ -11,7 +11,7 @@ Các task dưới đây chuyển các mốc M0–M6 trong [Evidence](../evidence
 | TASK-003 | [Xây dựng React UI](TASK-003-react-ui.md) | M2 | Todo | Lê Văn Cường | TASK-002 |
 | TASK-004 | [Container hóa và CI](TASK-004-container-ci.md) | M3 | Todo | Nguyễn Mai Hoàng Anh | TASK-002, TASK-003 |
 | TASK-005 | [Release, deploy và rollback](TASK-005-release-deploy.md) | M4 | Todo | Nguyễn Việt Anh | TASK-004 |
-| TASK-006 | [Observability và cảnh báo](TASK-006-observability.md) | M5 | Todo | Vũ Thành Công  | TASK-004 |
+| TASK-006 | [Observability và cảnh báo](TASK-006-observability.md) | M5 | Todo | Vũ Thành Công | TASK-004 |
 | TASK-007 | [Reliability demo và evidence](TASK-007-reliability-demo.md) | M6 | Todo | Chưa phân công | TASK-005, TASK-006 |
 
 ## Quy ước quản lý

@@ -1,7 +1,7 @@
 # TASK-006 — Observability và cảnh báo
 
 - Trạng thái: **Todo**
-- Người phụ trách: **Chưa phân công**
+- Người phụ trách: **Vũ Thành Công**
 - Mốc: **M5 — Observability**
 - Phụ thuộc: TASK-004
 
