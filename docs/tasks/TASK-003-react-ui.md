@@ -1,7 +1,7 @@
 # TASK-003 — Xây dựng React UI
 
 - Trạng thái: **Todo**
-- Người phụ trách: **Chưa phân công**
+- Người phụ trách: **Lê Văn Cường**
 - Mốc: **M2 — UI**
 - Phụ thuộc: TASK-002
 

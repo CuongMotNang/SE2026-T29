@@ -1,7 +1,7 @@
 # TASK-002 — Xây dựng Booking API
 
 - Trạng thái: **Done**
-- Người phụ trách: **Phạm Minh Cương**
+- Người phụ trách: **Phạm Minh Cương (23001840)**
 - Mốc: **M1 — Booking API**
 - Phụ thuộc: TASK-001
 
@@ -26,7 +26,7 @@ Xây dựng FastAPI và PostgreSQL cho luồng xem slot, tạo, xem và hủy bo
 
 ## Kết quả
 
-- Mã nguồn: commit `e1a7f4e`.
+- Mã nguồn: commit `e0426ba`.
 - Migration Alembic chạy thành công trên PostgreSQL 16.
 - Ruff lint/format đạt; 21 unit và integration tests pass.
 - Chi tiết: [Booking API test result](../evidence/2026-10-07-booking-api.md).

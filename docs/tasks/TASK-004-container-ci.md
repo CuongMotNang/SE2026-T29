@@ -1,7 +1,7 @@
 # TASK-004 — Container hóa và CI
 
 - Trạng thái: **Todo**
-- Người phụ trách: **Chưa phân công**
+- Người phụ trách: **Nguyễn Mai Hoàng Anh, Vũ Thành Công**
 - Mốc: **M3 — Container + CI**
 - Phụ thuộc: TASK-002, TASK-003
 

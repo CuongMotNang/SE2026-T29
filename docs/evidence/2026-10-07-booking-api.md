@@ -1,7 +1,7 @@
 # Booking API — Kết quả kiểm chứng cục bộ
 
 - Ngày: 07/10/2026
-- Commit mã nguồn được kiểm tra: `e1a7f4e`
+- Commit mã nguồn được kiểm tra: `e0426ba`
 - Môi trường: Windows, Python 3.12.14, PostgreSQL 16
 - Database: PostgreSQL test tạm thời, database `booking_test`, port riêng `55432`
 

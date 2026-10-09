@@ -7,10 +7,10 @@ Các task dưới đây chuyển các mốc M0–M6 trong [Evidence](../evidence
 | ID | Task | Mốc | Trạng thái | Người phụ trách | Phụ thuộc |
 | --- | --- | --- | --- | --- | --- |
 | TASK-001 | [Xác nhận kiến trúc](TASK-001-confirm-architecture.md) | M0 | In review | Chưa phân công | Không |
-| TASK-002 | [Xây dựng Booking API](TASK-002-booking-api.md) | M1 | Done | Phạm Minh Cương | TASK-001 |
-| TASK-003 | [Xây dựng React UI](TASK-003-react-ui.md) | M2 | Todo | Chưa phân công | TASK-002 |
-| TASK-004 | [Container hóa và CI](TASK-004-container-ci.md) | M3 | Todo | Chưa phân công | TASK-002, TASK-003 |
-| TASK-005 | [Release, deploy và rollback](TASK-005-release-deploy.md) | M4 | Todo | Chưa phân công | TASK-004 |
+| TASK-002 | [Xây dựng Booking API](TASK-002-booking-api.md) | M1 | Done | Phạm Minh Cương (23001840) | TASK-001 |
+| TASK-003 | [Xây dựng React UI](TASK-003-react-ui.md) | M2 | Todo | Lê Văn Cường | TASK-002 |
+| TASK-004 | [Container hóa và CI](TASK-004-container-ci.md) | M3 | Todo | Nguyễn Mai Hoàng Anh, Vũ Thành Công | TASK-002, TASK-003 |
+| TASK-005 | [Release, deploy và rollback](TASK-005-release-deploy.md) | M4 | Todo | Nguyễn Việt Anh | TASK-004 |
 | TASK-006 | [Observability và cảnh báo](TASK-006-observability.md) | M5 | Todo | Chưa phân công | TASK-004 |
 | TASK-007 | [Reliability demo và evidence](TASK-007-reliability-demo.md) | M6 | Todo | Chưa phân công | TASK-005, TASK-006 |
 

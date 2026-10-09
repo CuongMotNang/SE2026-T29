@@ -1,7 +1,7 @@
 # TASK-005 — Release, deploy và rollback
 
 - Trạng thái: **Todo**
-- Người phụ trách: **Chưa phân công**
+- Người phụ trách: **Nguyễn Việt Anh**
 - Mốc: **M4 — Release + Deploy**
 - Phụ thuộc: TASK-004
 
