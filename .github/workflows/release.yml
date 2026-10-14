@@ -1,0 +1,144 @@
+name: Release and Publish Manifest
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  test-gate:
+    name: Verification Gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: booking
+          POSTGRES_PASSWORD: booking
+          POSTGRES_DB: booking_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+          pip install -e "./backend[dev]"
+          pip install psutil
+
+      - name: Lint and format check
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run test suite
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://booking:booking@127.0.0.1:55432/booking_test
+        run: |
+          cd backend
+          alembic upgrade head
+          cd ..
+          pytest -v backend/tests/unit backend/tests/integration
+
+  build-and-release:
+    name: Build Images and Generate Manifest
+    needs: test-gate
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "./backend[dev]"
+          pip install psutil
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        id: build_backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.ref_name }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+
+      - name: Extract image digest and migration revision
+        id: metadata
+        run: |
+          DIGEST="${{ steps.build_backend.outputs.digest }}"
+          echo "backend_digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+          cd backend
+          MIGRATION_REV=$(python -c "import alembic.config, alembic.script; config = alembic.config.Config('alembic.ini'); script = alembic.script.ScriptDirectory.from_config(config); print(script.get_current_head())")
+          cd ..
+          echo "migration_revision=$MIGRATION_REV" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release manifest
+        run: |
+          mkdir -p docs/releases
+          python -m scripts.release_manifest create \
+            --release "${{ github.ref_name }}" \
+            --commit-sha "${{ github.sha }}" \
+            --migration-revision "${{ steps.metadata.outputs.migration_revision }}" \
+            --backend-repo "${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}" \
+            --backend-digest "${{ steps.metadata.outputs.backend_digest }}" \
+            --output "docs/releases/${{ github.ref_name }}.json"
+
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest-${{ github.ref_name }}
+          path: docs/releases/${{ github.ref_name }}.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: docs/releases/${{ github.ref_name }}.json
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Production Readiness Release ${{ github.ref_name }}
+            - **Commit SHA**: `${{ github.sha }}`
+            - **Backend Digest**: `${{ steps.metadata.outputs.backend_digest }}`
+            - **Migration Revision**: `${{ steps.metadata.outputs.migration_revision }}`
+            - **Manifest**: Attached below.

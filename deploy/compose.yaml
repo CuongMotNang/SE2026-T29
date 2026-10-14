@@ -1,0 +1,49 @@
+# Local Development Docker Compose
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-booking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-booking}
+      POSTGRES_DB: ${POSTGRES_DB:-booking}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-booking} -d ${POSTGRES_DB:-booking}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app_net
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BOOKING_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-booking}:${POSTGRES_PASSWORD:-booking}@db:5432/${POSTGRES_DB:-booking}
+      BOOKING_RELEASE: ${BOOKING_RELEASE:-dev}
+      BOOKING_COMMIT_SHA: ${BOOKING_COMMIT_SHA:-local}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ready || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
+
+volumes:
+  postgres_local_data:
