@@ -10,15 +10,15 @@ Implements TASK-005 requirements:
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
 import json
 import sys
 import time
-from typing import Any
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 
 @dataclass
@@ -61,9 +61,7 @@ class SmokeTestRunner:
             data = json.dumps(body).encode("utf-8")
             req_headers["Content-Type"] = "application/json"
 
-        request = urllib.request.Request(
-            url, data=data, headers=req_headers, method=method
-        )
+        request = urllib.request.Request(url, data=data, headers=req_headers, method=method)
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 status_code = response.status
@@ -142,7 +140,10 @@ class SmokeTestRunner:
                     success=False,
                     step="version_check",
                     duration_seconds=duration,
-                    message=f"Version mismatch: expected release '{self.expected_release}', got '{actual_release}'",
+                    message=(
+                        f"Version mismatch: expected release '{self.expected_release}', "
+                        f"got '{actual_release}'"
+                    ),
                     details={
                         "expected": self.expected_release,
                         "actual": actual_release,
@@ -154,7 +155,10 @@ class SmokeTestRunner:
                     success=False,
                     step="version_check",
                     duration_seconds=duration,
-                    message=f"Commit mismatch: expected commit '{self.expected_commit_sha}', got '{actual_commit}'",
+                    message=(
+                        f"Commit mismatch: expected commit '{self.expected_commit_sha}', "
+                        f"got '{actual_commit}'"
+                    ),
                     details={
                         "expected": self.expected_commit_sha,
                         "actual": actual_commit,
@@ -181,7 +185,7 @@ class SmokeTestRunner:
         start = time.monotonic()
         try:
             # Step 1: Query slots for tomorrow
-            tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
+            tomorrow = datetime.now(UTC) + timedelta(days=1)
             target_date = tomorrow.strftime("%Y-%m-%d")
             status, slots = self._http_request("GET", f"/api/slots?date={target_date}")
             if status != 200 or not isinstance(slots, list):
@@ -224,15 +228,15 @@ class SmokeTestRunner:
                 )
 
             # Step 3: Cancel smoke booking (cleanup)
-            status, _ = self._http_request(
-                "DELETE", f"/api/appointments/{appointment_id}"
-            )
+            status, _ = self._http_request("DELETE", f"/api/appointments/{appointment_id}")
             if status != 204:
                 return SmokeTestResult(
                     success=False,
                     step="business_flow_cancel",
                     duration_seconds=time.monotonic() - start,
-                    message=f"DELETE /api/appointments/{appointment_id} failed with status {status}",
+                    message=(
+                        f"DELETE /api/appointments/{appointment_id} failed with status {status}"
+                    ),
                     details={"status": status},
                 )
 
@@ -271,24 +275,16 @@ class SmokeTestRunner:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Run smoke tests against deployed Booking API"
-    )
-    parser.add_argument(
-        "--base-url", default="http://localhost:8000", help="Service base URL"
-    )
+    parser = argparse.ArgumentParser(description="Run smoke tests against deployed Booking API")
+    parser.add_argument("--base-url", default="http://localhost:8000", help="Service base URL")
     parser.add_argument(
         "--timeout",
         type=float,
         default=30.0,
         help="Readiness probe timeout in seconds",
     )
-    parser.add_argument(
-        "--expected-release", default=None, help="Expected release version"
-    )
-    parser.add_argument(
-        "--expected-commit-sha", default=None, help="Expected Git commit SHA"
-    )
+    parser.add_argument("--expected-release", default=None, help="Expected release version")
+    parser.add_argument("--expected-commit-sha", default=None, help="Expected Git commit SHA")
     args = parser.parse_args()
 
     runner = SmokeTestRunner(

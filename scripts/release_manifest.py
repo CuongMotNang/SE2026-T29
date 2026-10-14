@@ -9,11 +9,11 @@ Implements TASK-005 requirements:
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import re
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 HEX_SHA_REGEX = re.compile(r"^[0-9a-fA-F]{7,40}$")
@@ -47,7 +47,7 @@ class ImageSpec:
 
     @property
     def pinned_reference(self) -> str:
-        """Returns repository@digest for deterministic deployment without relying on tag mutations."""
+        """Returns repository@digest for deterministic deployment without tag mutations."""
         return f"{self.repository}@{self.digest}"
 
 
@@ -57,9 +57,7 @@ class ReleaseManifest:
     commit_sha: str
     migration_revision: str
     images: dict[str, ImageSpec]
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     schema_version: str = "1.0.0"
     compatibility: dict[str, Any] = field(
         default_factory=lambda: {
@@ -129,9 +127,7 @@ class ReleaseManifest:
             commit_sha=str(data.get("commit_sha", "")),
             migration_revision=str(data.get("migration_revision", "")),
             images=images,
-            created_at=str(
-                data.get("created_at") or datetime.now(timezone.utc).isoformat()
-            ),
+            created_at=str(data.get("created_at") or datetime.now(UTC).isoformat()),
             schema_version=str(data.get("schema_version", "1.0.0")),
             compatibility=dict(data.get("compatibility", {})),
         )
@@ -147,21 +143,15 @@ class ReleaseManifest:
         manifest = cls.from_dict(data)
         errors = manifest.validate()
         if errors:
-            raise ValueError(
-                f"Loaded manifest from {file_path} is invalid: {'; '.join(errors)}"
-            )
+            raise ValueError(f"Loaded manifest from {file_path} is invalid: {'; '.join(errors)}")
         return manifest
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Release manifest management tool for Booking API"
-    )
+    parser = argparse.ArgumentParser(description="Release manifest management tool for Booking API")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    create_parser = subparsers.add_parser(
-        "create", help="Create a new release manifest"
-    )
+    create_parser = subparsers.add_parser("create", help="Create a new release manifest")
     create_parser.add_argument(
         "--release", required=True, help="Release version / Git tag (e.g. v0.1.0)"
     )
@@ -192,9 +182,7 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser = subparsers.add_parser(
         "validate", help="Validate an existing release manifest"
     )
-    validate_parser.add_argument(
-        "--manifest", required=True, help="Path to manifest JSON file"
-    )
+    validate_parser.add_argument("--manifest", required=True, help="Path to manifest JSON file")
 
     return parser
 

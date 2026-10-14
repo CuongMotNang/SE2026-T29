@@ -35,6 +35,8 @@ jobs:
   backend-tests:
     name: Backend Unit and Integration Tests
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
     services:
       postgres:
         image: postgres:16-alpine

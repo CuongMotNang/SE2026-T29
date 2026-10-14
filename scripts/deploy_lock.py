@@ -8,14 +8,14 @@ Implements TASK-005 requirement:
 
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import sys
 import time
+from contextlib import AbstractContextManager
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import psutil
@@ -102,20 +102,21 @@ class DeploymentLock(AbstractContextManager["DeploymentLock"]):
                 # Check duration
                 try:
                     acquired_dt = datetime.fromisoformat(meta.acquired_at)
-                    now_dt = datetime.now(timezone.utc)
+                    now_dt = datetime.now(UTC)
                     age_seconds = (now_dt - acquired_dt).total_seconds()
                     if age_seconds > self.stale_timeout_seconds:
                         is_stale = True
-                        reason = f"Lock aged {age_seconds:.0f}s exceeding limit of {self.stale_timeout_seconds}s"
+                        reason = (
+                            f"Lock aged {age_seconds:.0f}s exceeding limit of "
+                            f"{self.stale_timeout_seconds}s"
+                        )
                 except Exception:
                     pass
 
         if is_stale:
             try:
                 if reason:
-                    print(
-                        f"Cleaning up stale deployment lock: {reason}", file=sys.stderr
-                    )
+                    print(f"Cleaning up stale deployment lock: {reason}", file=sys.stderr)
                 if self.metadata_file.exists():
                     self.metadata_file.unlink()
                 self.lock_dir.rmdir()
@@ -136,7 +137,7 @@ class DeploymentLock(AbstractContextManager["DeploymentLock"]):
                 meta = LockMetadata(
                     pid=os.getpid(),
                     operation=self.operation,
-                    acquired_at=datetime.now(timezone.utc).isoformat(),
+                    acquired_at=datetime.now(UTC).isoformat(),
                     target_release=self.target_release,
                     host=os.uname().nodename
                     if hasattr(os, "uname")
@@ -155,16 +156,13 @@ class DeploymentLock(AbstractContextManager["DeploymentLock"]):
                 elapsed = time.monotonic() - start_time
                 if elapsed >= self.timeout_seconds:
                     pid_info = f"PID {existing.pid}" if existing else "unknown process"
-                    op_info = (
-                        f"doing '{existing.operation}'" if existing else "operation"
+                    op_info = f"doing '{existing.operation}'" if existing else "operation"
+                    time_info = f"since {existing.acquired_at}" if existing else "unknown time"
+                    msg = (
+                        f"Cannot acquire deployment lock: held by {pid_info} "
+                        f"{op_info} {time_info}. Concurrent deployments are forbidden."
                     )
-                    time_info = (
-                        f"since {existing.acquired_at}" if existing else "unknown time"
-                    )
-                    raise DeploymentLockError(
-                        f"Cannot acquire deployment lock: held by {pid_info} {op_info} {time_info}. "
-                        "Concurrent deployments are forbidden."
-                    )
+                    raise DeploymentLockError(msg) from None
                 time.sleep(0.5)
 
     def release(self) -> None:
