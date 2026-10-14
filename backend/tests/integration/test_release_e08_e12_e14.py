@@ -99,8 +99,9 @@ async def test_e12_booking_data_preserved_across_simulated_rollback(
         # Verify the original booking is STILL present and intact (E12)!
         list_resp = await rolled_back_client.get("/api/appointments")
         assert list_resp.status_code == 200
-        appointments = list_resp.json()
-        matching = [a for a in appointments if a["id"] == booking_id]
+        data = list_resp.json()
+        items = data["items"] if isinstance(data, dict) and "items" in data else data
+        matching = [a for a in items if a["id"] == booking_id]
         assert len(matching) == 1
         assert matching[0]["customer_name"] == "Nguyen Viet Anh - Pre-Deploy Customer"
         assert matching[0]["status"] == "booked"
