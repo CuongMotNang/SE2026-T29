@@ -210,7 +210,7 @@ def main() -> None:
     except DeploymentLockError as exc:
         print(f"[FATAL] Lock error: {exc}", file=sys.stderr)
         sys.exit(2)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"[FATAL] Rollback failed: {exc}", file=sys.stderr)
         sys.exit(1)
 

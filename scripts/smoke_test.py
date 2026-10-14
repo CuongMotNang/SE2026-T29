@@ -61,9 +61,9 @@ class SmokeTestRunner:
             data = json.dumps(body).encode("utf-8")
             req_headers["Content-Type"] = "application/json"
 
-        request = urllib.request.Request(url, data=data, headers=req_headers, method=method)
+        request = urllib.request.Request(url, data=data, headers=req_headers, method=method)  # noqa: S310
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
+            with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
                 status_code = response.status
                 raw = response.read().decode("utf-8")
                 if not raw:
@@ -96,7 +96,7 @@ class SmokeTestRunner:
                         details={"status": status, "response": body},
                     )
                 last_error = f"HTTP {status}: {body}"
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 last_error = str(exc)
             time.sleep(1.0)
 
@@ -172,7 +172,7 @@ class SmokeTestRunner:
                 message=f"Version verified: release='{actual_release}', commit='{actual_commit}'",
                 details={"release": actual_release, "commit_sha": actual_commit},
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             return SmokeTestResult(
                 success=False,
                 step="version_check",
@@ -247,7 +247,7 @@ class SmokeTestRunner:
                 message="Business smoke test passed: slots queried, booking created and cancelled.",
                 details={"smoke_appointment_id": appointment_id, "slot": smoke_slot},
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             return SmokeTestResult(
                 success=False,
                 step="business_flow",

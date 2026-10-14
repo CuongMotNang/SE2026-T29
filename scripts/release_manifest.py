@@ -120,7 +120,7 @@ class ReleaseManifest:
                     digest=str(spec_data.get("digest", "")),
                 )
             else:
-                raise ValueError(f"Invalid image spec format for '{name}'.")
+                raise TypeError(f"Invalid image spec format for '{name}'.")
 
         manifest = cls(
             release=str(data.get("release", "")),

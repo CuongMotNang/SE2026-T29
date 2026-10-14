@@ -16,7 +16,7 @@ from contextlib import AbstractContextManager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Self
 
 import psutil
 
@@ -77,8 +77,8 @@ class DeploymentLock(AbstractContextManager["DeploymentLock"]):
             try:
                 content = self.metadata_file.read_text(encoding="utf-8")
                 return LockMetadata.from_json(content)
-            except Exception:
-                pass
+            except (OSError, json.JSONDecodeError, KeyError, TypeError):
+                return None
         return None
 
     def _cleanup_stale_lock(self, meta: LockMetadata | None) -> bool:
@@ -110,7 +110,7 @@ class DeploymentLock(AbstractContextManager["DeploymentLock"]):
                             f"Lock aged {age_seconds:.0f}s exceeding limit of "
                             f"{self.stale_timeout_seconds}s"
                         )
-                except Exception:
+                except (ValueError, TypeError):
                     pass
 
         if is_stale:
@@ -178,7 +178,7 @@ class DeploymentLock(AbstractContextManager["DeploymentLock"]):
         finally:
             self.is_acquired = False
 
-    def __enter__(self) -> DeploymentLock:
+    def __enter__(self) -> Self:
         self.acquire()
         return self
 
@@ -186,6 +186,6 @@ class DeploymentLock(AbstractContextManager["DeploymentLock"]):
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: Any,
+        exc_tb: object,
     ) -> None:
         self.release()
