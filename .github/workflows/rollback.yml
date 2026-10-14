@@ -1,0 +1,37 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_manifest:
+        description: "Path to release manifest to restore (defaults to deploy/previous-manifest.json)"
+        required: false
+        default: "deploy/previous-manifest.json"
+      reason:
+        description: "Reason for initiating rollback"
+        required: true
+        default: "Manual rollback triggered after incident drill or alert"
+
+jobs:
+  rollback:
+    name: Execute Rollback
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "./backend[dev]"
+          pip install psutil
+
+      - name: Run rollback script
+        run: |
+          echo "Initiating rollback. Reason: ${{ github.event.inputs.reason }}"
+          python -m scripts.rollback --target-manifest "${{ github.event.inputs.target_manifest }}"
