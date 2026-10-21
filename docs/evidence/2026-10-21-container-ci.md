@@ -51,6 +51,30 @@ Scan `HIGH,CRITICAL`, bỏ qua lỗ hổng chưa có bản vá. OS packages: 0. 
 
 Scan đang ở chế độ chỉ báo cáo. Việc nâng cấp các gói này và chuyển Trivy sang chặn build với `CRITICAL` nằm trong kế hoạch tuần 5.
 
-## 4. Chưa kiểm chứng
+## 4. E07 — Lỗi code chặn phát hành
 
-- **E07** — một PR cố ý fail bị chặn merge: cần bật branch protection cho `main` (bắt buộc các check của `ci.yml` pass). Người thực hiện cần quyền admin repository; tài khoản hiện tại chỉ có quyền push.
+**Cấu hình** (bật bởi chủ repository, Phạm Minh Cương): branch protection cho `main` yêu cầu pull request có 1 approval và 4 status check bắt buộc, áp dụng cho mọi người (`enforcement_level: everyone`):
+
+```json
+"contexts": [
+  "Lint and Format Checks",
+  "Backend Unit and Integration Tests",
+  "Compose Stack Smoke Test",
+  "Docker Build Verification"
+]
+```
+
+**Thí nghiệm:** [PR #11](https://github.com/CuongMotNang/SE2026-T29/pull/11), nhánh `demo/e07-failing-test`, sửa sai một assertion trong `backend/tests/unit/test_smoke_test.py`. CI run [39548188503](https://github.com/CuongMotNang/SE2026-T29/actions/runs/39548188503) (sau khi cập nhật nhánh theo `main`):
+
+| Check | Bắt buộc | Kết quả |
+| --- | --- | --- |
+| Lint and Format Checks | Có | Pass |
+| Backend Unit and Integration Tests | Có | **Fail** — `AssertionError: assert 'readiness_check' == 'readiness_probe'` |
+| Compose Stack Smoke Test | Có | Pass |
+| Docker Build Verification | Có | Pass |
+
+Trạng thái merge do GitHub trả về (GraphQL): `mergeStateStatus: BLOCKED`, `isRequired: true` cho cả 4 check. PR được đóng, không merge; nhánh demo đã xoá.
+
+Lần chạy đầu ([39543067511](https://github.com/CuongMotNang/SE2026-T29/actions/runs/39543067511)) cũng fail nhưng khi đó danh sách check bắt buộc còn rỗng, nên PR chỉ bị chặn vì thiếu review. Lần đó không được tính là bằng chứng E07.
+
+**Kết luận E07:** Đạt. Code làm fail test không vào được `main`, nên không đi tiếp được tới release/deploy qua pipeline chuẩn.
