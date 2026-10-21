@@ -12,3 +12,6 @@ backend/postgres-test.log
 
 # CI reports
 reports/
+
+# Local alert receiver secret
+deploy/observability/alertmanager/discord-webhook-url
