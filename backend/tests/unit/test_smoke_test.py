@@ -8,7 +8,7 @@ def test_smoke_runner_readiness_success():
     with patch.object(runner, "_http_request", return_value=(200, {"status": "ok"})):
         res = runner.wait_for_readiness()
         assert res.success
-        assert res.step == "readiness_check"
+        assert res.step == "readiness_probe"  # E07 demo: intentionally wrong
         assert "HTTP 200" in res.message
 
 
