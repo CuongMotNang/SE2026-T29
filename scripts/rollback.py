@@ -10,12 +10,14 @@ Implements TASK-005 requirements:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 
+from scripts.deploy import build_compose_up_command
 from scripts.deploy_lock import DeploymentLock, DeploymentLockError
 from scripts.release_manifest import ReleaseManifest
 from scripts.smoke_test import SmokeTestRunner
@@ -24,18 +26,23 @@ from scripts.smoke_test import SmokeTestRunner
 class Rollbacker:
     def __init__(
         self,
-        target_manifest: Path | str = "deploy/previous-manifest.json",
+        target_manifest: Path | str | None = None,
         compose_file: Path | str = "deploy/compose.production.yaml",
-        state_dir: Path | str = "deploy",
+        state_dir: Path | str | None = None,
         base_url: str = "http://localhost:8000",
         readiness_timeout_seconds: float = 30.0,
         skip_container_ops: bool = False,
         dry_run: bool = False,
         acquire_lock: bool = True,
     ) -> None:
-        self.target_manifest_path = Path(target_manifest).resolve()
+        resolved_state_dir = state_dir or os.getenv("BOOKING_STATE_DIR", "deploy")
+        self.state_dir = Path(resolved_state_dir).resolve()
+        if target_manifest is None or target_manifest == "deploy/previous-manifest.json":
+            self.target_manifest_path = self.state_dir / "previous-manifest.json"
+        else:
+            self.target_manifest_path = Path(target_manifest).resolve()
+
         self.compose_file = Path(compose_file).resolve()
-        self.state_dir = Path(state_dir).resolve()
         self.base_url = base_url
         self.readiness_timeout_seconds = readiness_timeout_seconds
         self.skip_container_ops = skip_container_ops
@@ -89,17 +96,7 @@ class Rollbacker:
         print(f"[INFO] Restoring previous container using digest: {backend_spec.pinned_reference}")
         if not self.skip_container_ops:
             # Recreate containers without touching database volume
-            compose_cmd = [
-                "docker",
-                "compose",
-                "--env-file",
-                str(self.env_file),
-                "-f",
-                str(self.compose_file),
-                "up",
-                "-d",
-                "--remove-orphans",
-            ]
+            compose_cmd = build_compose_up_command(self.env_file, self.compose_file)
             self.execute_command(compose_cmd)
 
     def run_smoke_tests(self, manifest: ReleaseManifest) -> bool:
@@ -182,13 +179,19 @@ class Rollbacker:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Deterministic Booking API rollback tool")
+    default_state_dir = os.getenv("BOOKING_STATE_DIR", "deploy")
+    default_target_manifest = Path(default_state_dir) / "previous-manifest.json"
     parser.add_argument(
         "--target-manifest",
-        default="deploy/previous-manifest.json",
-        help="Path to manifest to restore (defaults to deploy/previous-manifest.json)",
+        default=str(default_target_manifest),
+        help="Path to manifest to restore (default: <state-dir>/previous-manifest.json)",
     )
     parser.add_argument("--compose-file", default="deploy/compose.production.yaml")
-    parser.add_argument("--state-dir", default="deploy")
+    parser.add_argument(
+        "--state-dir",
+        default=default_state_dir,
+        help="Directory to store active manifests and locks (default: BOOKING_STATE_DIR)",
+    )
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--dry-run", action="store_true")

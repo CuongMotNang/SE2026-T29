@@ -2,13 +2,36 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from scripts.deploy import Deployer
+from scripts.deploy import Deployer, build_compose_up_command
 from scripts.release_manifest import ImageSpec, ReleaseManifest
 from scripts.rollback import Rollbacker
 from scripts.smoke_test import SmokeTestResult, SmokeTestRunner
 
 DIGEST_V1 = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
 DIGEST_V2 = "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+
+
+def test_build_compose_up_command_produces_deterministic_args():
+    env_file = Path("/opt/booking/state/.env.production")
+    compose_file = Path("deploy/compose.production.yaml")
+    cmd = build_compose_up_command(env_file, compose_file)
+
+    assert cmd == [
+        "docker",
+        "compose",
+        "--env-file",
+        str(env_file),
+        "-f",
+        str(compose_file),
+        "up",
+        "-d",
+        "--remove-orphans",
+    ]
+
+
+def test_build_compose_up_command_custom_flags():
+    cmd = build_compose_up_command("env.txt", "compose.yaml", detach=False, remove_orphans=False)
+    assert cmd == ["docker", "compose", "--env-file", "env.txt", "-f", "compose.yaml", "up"]
 
 
 @pytest.fixture
