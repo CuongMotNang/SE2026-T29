@@ -66,6 +66,16 @@ class ReleaseManifest:
         }
     )
 
+    @property
+    def backend_image(self) -> ImageSpec | None:
+        """Returns ImageSpec for the backend service if declared."""
+        return self.images.get("backend")
+
+    @property
+    def frontend_image(self) -> ImageSpec | None:
+        """Returns ImageSpec for the frontend service if declared."""
+        return self.images.get("frontend")
+
     def validate(self) -> list[str]:
         errors: list[str] = []
         if not self.release or not self.release.strip():
@@ -174,6 +184,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Backend image digest (must start with sha256:)",
     )
     create_parser.add_argument(
+        "--frontend-repo",
+        default="ghcr.io/cuongmotnang/booking-frontend",
+        help="Frontend image repository",
+    )
+    create_parser.add_argument(
+        "--frontend-digest",
+        default=None,
+        help="Frontend image digest (optional, must start with sha256: if provided)",
+    )
+    create_parser.add_argument(
         "--output",
         required=True,
         help="Path where the JSON manifest will be saved",
@@ -192,17 +212,24 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "create":
+        images: dict[str, ImageSpec] = {
+            "backend": ImageSpec(
+                repository=args.backend_repo,
+                tag=args.release,
+                digest=args.backend_digest,
+            )
+        }
+        if args.frontend_digest:
+            images["frontend"] = ImageSpec(
+                repository=args.frontend_repo,
+                tag=args.release,
+                digest=args.frontend_digest,
+            )
         manifest = ReleaseManifest(
             release=args.release,
             commit_sha=args.commit_sha,
             migration_revision=args.migration_revision,
-            images={
-                "backend": ImageSpec(
-                    repository=args.backend_repo,
-                    tag=args.release,
-                    digest=args.backend_digest,
-                )
-            },
+            images=images,
         )
         manifest.save(args.output)
         print(f"Manifest successfully created and saved to: {args.output}")

@@ -10,6 +10,7 @@ Implements TASK-005 requirements:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -21,12 +22,39 @@ from scripts.release_manifest import ReleaseManifest
 from scripts.smoke_test import SmokeTestRunner
 
 
+def build_compose_up_command(
+    env_file: Path | str,
+    compose_file: Path | str,
+    detach: bool = True,
+    remove_orphans: bool = True,
+) -> list[str]:
+    """Build a deterministic docker compose up command list.
+
+    Shared between deploy and rollback orchestration to guarantee consistent
+    flag ordering (--env-file, -f, up, -d, --remove-orphans).
+    """
+    cmd = [
+        "docker",
+        "compose",
+        "--env-file",
+        str(env_file),
+        "-f",
+        str(compose_file),
+        "up",
+    ]
+    if detach:
+        cmd.append("-d")
+    if remove_orphans:
+        cmd.append("--remove-orphans")
+    return cmd
+
+
 class Deployer:
     def __init__(
         self,
         manifest_path: Path | str,
         compose_file: Path | str = "deploy/compose.production.yaml",
-        state_dir: Path | str = "deploy",
+        state_dir: Path | str | None = None,
         base_url: str = "http://localhost:8000",
         readiness_timeout_seconds: float = 30.0,
         dry_run: bool = False,
@@ -34,7 +62,8 @@ class Deployer:
     ) -> None:
         self.manifest_path = Path(manifest_path).resolve()
         self.compose_file = Path(compose_file).resolve()
-        self.state_dir = Path(state_dir).resolve()
+        resolved_state_dir = state_dir or os.getenv("BOOKING_STATE_DIR", "deploy")
+        self.state_dir = Path(resolved_state_dir).resolve()
         self.base_url = base_url
         self.readiness_timeout_seconds = readiness_timeout_seconds
         self.dry_run = dry_run
@@ -99,18 +128,8 @@ class Deployer:
             # 1. Pull pinned digest
             self.execute_command(["docker", "pull", backend_spec.pinned_reference])
 
-            # 2. Recreate containers using docker compose
-            compose_cmd = [
-                "docker",
-                "compose",
-                "--env-file",
-                str(self.env_file),
-                "-f",
-                str(self.compose_file),
-                "up",
-                "-d",
-                "--remove-orphans",
-            ]
+            # 2. Recreate containers using docker compose builder
+            compose_cmd = build_compose_up_command(self.env_file, self.compose_file)
             self.execute_command(compose_cmd)
 
     def run_smoke_tests(self, manifest: ReleaseManifest) -> bool:
@@ -224,7 +243,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Deterministic Booking API deploy tool")
     parser.add_argument("--manifest", required=True, help="Path to release manifest JSON")
     parser.add_argument("--compose-file", default="deploy/compose.production.yaml")
-    parser.add_argument("--state-dir", default="deploy")
+    default_state_dir = os.getenv("BOOKING_STATE_DIR", "deploy")
+    parser.add_argument(
+        "--state-dir",
+        default=default_state_dir,
+        help="Directory to store active manifests and locks (default: BOOKING_STATE_DIR)",
+    )
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--dry-run", action="store_true")
