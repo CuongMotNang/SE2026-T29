@@ -3,6 +3,14 @@
 Provision `dashboards/booking-api-overview.json` from the Grafana dashboards provider. The
 dashboard expects a Prometheus datasource with UID `prometheus`.
 
+Mount `provisioning/` at `/etc/grafana/provisioning` and `dashboards/` at
+`/var/lib/grafana/dashboards`. The datasource provisioning creates stable UIDs for Prometheus,
+Tempo and Loki and configures all three correlation directions:
+
+- Prometheus exemplars open the matching Tempo trace;
+- a Tempo span opens Loki logs for its service and native trace ID; and
+- Loki's `trace_id` structured metadata opens the matching Tempo trace.
+
 The Collector Prometheus exporter must retain the default metric suffixes and expose these
 resource attributes as normalized labels:
 
