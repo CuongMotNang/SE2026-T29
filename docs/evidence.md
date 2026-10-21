@@ -1,6 +1,6 @@
 # Evidence — Đối chiếu thiết kế, code và tests
 
-Trạng thái ngày 14/10/2026: **đã có Booking API backend, Release/Deploy/Rollback (M4), và kết quả test cục bộ; chưa có frontend hoặc observability**. Các đường dẫn chưa được triển khai vẫn là dự kiến và không được xem là hoàn thành chỉ vì đã có trong thiết kế.
+Trạng thái ngày 21/10/2026: **đã có Booking API backend, Release/Deploy/Rollback (M4), fault injection và instrumentation backend; chưa có frontend hoặc stack observability end-to-end**. Collector, dashboard, alert và evidence từ môi trường demo vẫn chưa được xem là hoàn thành chỉ vì backend đã phát sinh telemetry.
 
 ## 1. Cấu trúc repository dự kiến
 
@@ -10,7 +10,7 @@ Trạng thái ngày 14/10/2026: **đã có Booking API backend, Release/Deploy/R
 | Bootstrap/API | `backend/app/main.py`, `config.py`, `api/appointments.py`, `api/health.py`, `api/version.py`, `api/slots.py`, `schemas/appointment.py` — đã có | Hợp đồng API và wiring |
 | Business/data | `backend/app/services/booking.py`, `repositories/appointments.py`, `models/appointment.py`, `db.py`, `domain/errors.py` — đã có | Hướng API → service → repository → DB |
 | Migrations | `backend/alembic/versions/` — đã có migration đầu tiên | Transaction/schema, uniqueness của active booking |
-| Telemetry | `backend/app/telemetry/` | HTTP metrics, spans, log correlation |
+| Telemetry | `backend/app/telemetry/`, `backend/app/request_logging.py`, `backend/app/services/fault_injection.py` — backend đã có; stack Collector/Grafana chưa có | HTTP metrics, spans, log correlation và reliability drill |
 | Tests | `backend/tests/unit/`, `backend/tests/integration/` — đã có; frontend/E2E/load chưa có | Kiểm chứng quy tắc và hệ thống |
 | Container/deploy | `backend/Dockerfile`, `deploy/compose.yaml`, `deploy/compose.production.yaml` — đã có | ADR-001 và runtime services |
 | CI/CD | `.github/workflows/ci.yml`, `release.yml`, `rollback.yml`, `scripts/deploy.sh`, `scripts/rollback.sh`, `scripts/deploy.py`, `scripts/rollback.py` — đã có | Gates, release manifest và recovery |
@@ -30,9 +30,9 @@ Các đường dẫn backend viết ngắn ở cùng hàng được hiểu là n
 | E06 | UI phản ánh response thật | BookingPage + HTTP client | Frontend tests và E2E | Loading/error/success đúng; 409 không hiển thị thành công | Chưa kiểm chứng |
 | E07 | Lỗi code chặn phát hành | `ci.yml`, `release.yml` | Một PR cố ý fail test ở branch demo | CI fail; không deploy qua pipeline chuẩn | Chưa kiểm chứng |
 | E08 | Định danh release truy vết được | Manifest + `/api/version` | So tag/SHA/digest với deployment | Version API khớp manifest và images đang chạy | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
-| E09 | Telemetry chỉ ra request lỗi | Instrumentation + collector pipelines | Request fault rồi query backend telemetry | Có metrics, trace, log cùng trace ID và release | Chưa kiểm chứng |
-| E10 | Telemetry lỗi không chặn booking | SDK timeout/batch | `test_booking_when_collector_unavailable` hoặc drill | Booking vẫn thành công; không chờ export vô hạn | Chưa kiểm chứng |
-| E11 | Alert hoạt động dưới tải | Prometheus rules + Alertmanager | Fault injection có timestamp | Firing trong mục tiêu 3 phút; resolved sau phục hồi/cửa sổ đánh giá | Chưa kiểm chứng |
+| E09 | Telemetry chỉ ra request lỗi | Instrumentation + collector pipelines | Request fault rồi query backend telemetry | Có metrics, trace, log cùng trace ID và release | [Backend đạt cục bộ; chưa có query end-to-end](evidence/2026-10-21-backend-observability.md) |
+| E10 | Telemetry lỗi không chặn booking | SDK timeout/batch | `test_collector_outage_does_not_block_booking_path` hoặc drill | Booking vẫn thành công; không chờ export vô hạn | [Đạt cục bộ](evidence/2026-10-21-backend-observability.md) |
+| E11 | Alert hoạt động dưới tải | Prometheus rules + Alertmanager | Fault injection có timestamp | Firing trong mục tiêu 3 phút; resolved sau phục hồi/cửa sổ đánh giá | [Fault injector đã có; alert chưa kiểm chứng](evidence/2026-10-21-backend-observability.md) |
 | E12 | Deploy lỗi rollback được | Deploy/rollback scripts + smoke tests | Release drill lỗi rồi khôi phục | ≤5 phút; version cũ; smoke test pass; booking cũ còn | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
 | E13 | Dữ liệu tồn tại qua recreate | PostgreSQL volume | Tạo booking, recreate API rồi đọc lại | Row không mất | Chưa kiểm chứng |
 | E14 | Release tương thích schema cũ | Alembic + migration review | Chạy code bản rollback với schema sau migration | Tạo/xem/hủy đều pass | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |

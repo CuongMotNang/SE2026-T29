@@ -23,14 +23,18 @@ Các sơ đồ dùng Mermaid và có thể xem khi mở Markdown trên GitHub.
 | Architecture context | Tài liệu thiết kế | Team xác nhận các giả định |
 | Two views | Hai tài liệu và sơ đồ | Đối chiếu với code sau khi triển khai |
 | One ADR | ADR đầy đủ, trạng thái Proposed | Team chấp nhận quyết định |
-| Booking API | FastAPI, PostgreSQL, Alembic; 21 tests pass cục bộ | CI và kiểm chứng trên môi trường dùng chung |
+| Booking API | FastAPI, PostgreSQL, Alembic; 69 backend tests pass cục bộ | CI và kiểm chứng trên môi trường dùng chung |
+| Backend observability | Fault injection có hạn, JSON request log, OpenTelemetry OTLP | Collector, dashboard, alert và drill end-to-end |
 | Tasks | Backlog M0–M6; TASK-002 hoàn thành | Team phân công owner cho các task còn lại |
 | Evidence | Bảng truy vết và kết quả E01–E05 cục bộ | Pipeline, dashboard và incident thực nghiệm |
 
-Repository hiện có tài liệu thiết kế và Booking API backend. Chưa có React UI, deployment, observability hoặc kết quả SLO; kết quả test hiện tại mới được kiểm chứng cục bộ với PostgreSQL 16.
+Repository hiện có tài liệu thiết kế, Booking API, release/deploy scripts và instrumentation
+backend. Chưa có React UI, môi trường deploy dùng chung, stack observability end-to-end hoặc
+kết quả SLO; kết quả test hiện tại mới được kiểm chứng cục bộ với PostgreSQL 16.
 
 ## Bước tiếp theo
 
 Team xác nhận kiến trúc và phân công owner trong [Tasks](docs/tasks/README.md), sau đó triển khai [TASK-003 — React UI](docs/tasks/TASK-003-react-ui.md) trên Booking API đã có. Cấu trúc mã nguồn và trạng thái kiểm chứng nằm trong `docs/evidence.md`.
 
-Sau khi UI chạy được, thêm container, CI, release/deploy, telemetry và incident drill theo các mốc trong tài liệu Evidence.
+Sau khi UI chạy được, hoàn thiện môi trường deploy, Collector/dashboard/alert và incident drill
+theo các mốc trong tài liệu Evidence.

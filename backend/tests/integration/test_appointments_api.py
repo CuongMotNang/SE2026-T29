@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import func, select
 
+from app.config import get_settings
 from app.models import Appointment, AppointmentStatus
 from app.services.booking import BOOKING_TIMEZONE
 
@@ -33,6 +34,37 @@ async def test_create_booking_persists(client, test_session_factory) -> None:
         saved = await session.get(Appointment, UUID(payload["id"]))
         assert saved is not None
         assert saved.status == AppointmentStatus.BOOKED.value
+
+
+async def test_error_fault_returns_500_before_database_write(
+    client,
+    test_session_factory,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("BOOKING_FAULT_MODE", "error")
+    monkeypatch.setenv("BOOKING_FAULT_RATE", "1")
+    monkeypatch.setenv(
+        "BOOKING_FAULT_UNTIL",
+        (datetime.now(UTC) + timedelta(minutes=5)).isoformat(),
+    )
+    get_settings.cache_clear()
+
+    try:
+        response = await client.post(
+            "/api/appointments",
+            json={
+                "customer_name": "Cuong",
+                "starts_at": future_slot().isoformat(),
+            },
+        )
+
+        assert response.status_code == 500
+        assert response.json() == {"detail": "Injected booking failure"}
+        async with test_session_factory() as session:
+            count = await session.scalar(select(func.count()).select_from(Appointment))
+            assert count == 0
+    finally:
+        get_settings.cache_clear()
 
 
 async def test_concurrent_booking_same_slot(client, test_session_factory) -> None:
