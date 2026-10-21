@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-format:
     name: Lint and Format Checks
@@ -18,6 +25,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
 
       - name: Install dependencies
         run: |
@@ -60,6 +69,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
 
       - name: Install backend dependencies
         run: |
@@ -69,7 +80,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest -v backend/tests/unit
+          pytest -v backend/tests/unit --junitxml=reports/junit-unit.xml
 
       - name: Run database migration
         working-directory: ./backend
@@ -82,7 +93,59 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql+asyncpg://booking:booking@127.0.0.1:55432/booking_test
         run: |
-          pytest -v backend/tests/integration
+          pytest -v backend/tests/integration --junitxml=reports/junit-integration.xml
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: reports/junit-*.xml
+          if-no-files-found: ignore
+
+  compose-smoke:
+    name: Compose Stack Smoke Test
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_FILE: deploy/compose.yaml
+      COMPOSE_PROJECT_NAME: booking-ci
+      BOOKING_RELEASE: ci
+      BOOKING_COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Start stack and wait for healthy backend
+        run: |
+          docker compose up -d --build --wait --wait-timeout 180
+
+      - name: Show service status
+        run: |
+          docker compose ps -a
+
+      - name: Run smoke test against compose stack
+        run: |
+          python -m scripts.smoke_test \
+            --base-url http://localhost:8000 \
+            --timeout 60 \
+            --expected-release "$BOOKING_RELEASE" \
+            --expected-commit-sha "$BOOKING_COMMIT_SHA"
+
+      - name: Verify bookings survive backend recreate (E13)
+        run: |
+          python -m scripts.persistence_check seed --state-file "$RUNNER_TEMP/e13.json"
+          docker compose up -d --force-recreate --no-deps --wait --wait-timeout 120 backend
+          python -m scripts.persistence_check verify --state-file "$RUNNER_TEMP/e13.json"
+
+      - name: Dump service logs on failure
+        if: failure()
+        run: |
+          docker compose logs --no-color
 
   docker-build-check:
     name: Docker Build Verification
@@ -100,4 +163,27 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: false
+          load: true
           tags: booking-backend:ci-test
+
+      - name: Scan backend image with Trivy (report only)
+        run: |
+          mkdir -p reports
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD/reports:/reports" \
+            aquasec/trivy:0.58.1 image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 0 \
+            --format table \
+            --output /reports/trivy-backend.txt \
+            booking-backend:ci-test
+          cat reports/trivy-backend.txt
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-backend
+          path: reports/trivy-backend.txt
