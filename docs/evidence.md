@@ -34,7 +34,7 @@ Các đường dẫn backend viết ngắn ở cùng hàng được hiểu là n
 | E10 | Telemetry lỗi không chặn booking | SDK timeout/batch | `test_booking_when_collector_unavailable` hoặc drill | Booking vẫn thành công; không chờ export vô hạn | Chưa kiểm chứng |
 | E11 | Alert hoạt động dưới tải | Prometheus rules + Alertmanager | Fault injection có timestamp | Firing trong mục tiêu 3 phút; resolved sau phục hồi/cửa sổ đánh giá | Chưa kiểm chứng |
 | E12 | Deploy lỗi rollback được | Deploy/rollback scripts + smoke tests | Release drill lỗi rồi khôi phục | ≤5 phút; version cũ; smoke test pass; booking cũ còn | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
-| E13 | Dữ liệu tồn tại qua recreate | PostgreSQL volume | Tạo booking, recreate API rồi đọc lại | Row không mất | Chưa kiểm chứng |
+| E13 | Dữ liệu tồn tại qua recreate | PostgreSQL volume | Tạo booking, recreate API rồi đọc lại | Row không mất | [Đạt trên CI](evidence/2026-10-21-container-ci.md) |
 | E14 | Release tương thích schema cũ | Alembic + migration review | Chạy code bản rollback với schema sau migration | Tạo/xem/hủy đều pass | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
 | E15 | Độ trễ đạt mục tiêu tham chiếu | Load script + histogram | 10 request/giây, 10 phút, recording | ≥95% dưới 500 ms; báo đủ VM/dataset/phiên bản | Chưa kiểm chứng |
 | E16 | API chết vẫn được phát hiện | Blackbox probe + alert rule | Stop API trong môi trường drill | Probe fail, alert xuất hiện dù HTTP counter không tăng | Chưa kiểm chứng |
