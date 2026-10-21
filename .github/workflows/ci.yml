@@ -95,6 +95,31 @@ jobs:
         run: |
           pytest -v backend/tests/integration
 
+  compose-smoke:
+    name: Compose Stack Smoke Test
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_FILE: deploy/compose.yaml
+      COMPOSE_PROJECT_NAME: booking-ci
+      BOOKING_RELEASE: ci
+      BOOKING_COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Start stack and wait for healthy backend
+        run: |
+          docker compose up -d --build --wait --wait-timeout 180
+
+      - name: Show service status
+        run: |
+          docker compose ps -a
+
   docker-build-check:
     name: Docker Build Verification
     runs-on: ubuntu-latest
