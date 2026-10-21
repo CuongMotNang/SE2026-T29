@@ -18,7 +18,7 @@ flowchart TD
 
 `main.py` là nơi khởi tạo và kết nối các thành phần. Mũi tên là hướng sử dụng. UI và backend không import code của nhau; chúng phối hợp qua HTTP contract.
 
-## 2. Trách nhiệm và đường dẫn dự kiến
+## 2. Trách nhiệm và đường dẫn
 
 | Module | Đường dẫn dự kiến | Trách nhiệm | Giới hạn |
 | --- | --- | --- | --- |
@@ -30,6 +30,8 @@ flowchart TD
 | Model/DB | `backend/app/models/appointment.py`, `backend/app/db.py` | Mapping SQLAlchemy, engine, session, rollback transaction khi lỗi | Không trả response HTTP |
 | Migration | `backend/alembic/versions/` | Schema, constraints, partial unique index | Schema thay đổi có version; không sửa DB bằng tay |
 | Telemetry | `backend/app/telemetry/` | Spans, HTTP metrics, log bridge, trace correlation | Lỗi xuất telemetry không được làm booking thất bại |
+| Request logging | `backend/app/request_logging.py` | Log JSON theo route template, thời gian, status, trace/release | Không đọc body, query string hoặc dữ liệu khách hàng |
+| Fault injection | `backend/app/services/fault_injection.py` | Tiêm lỗi/độ trễ có tỷ lệ và thời hạn cho reliability drill | Mặc định tắt; thực thi trước khi ghi DB; mode hoạt động bắt buộc có hạn |
 | Bootstrap/config | `backend/app/main.py`, `backend/app/config.py` | Dependency wiring, lifecycle, đọc cấu hình môi trường | Không chứa logic đặt lịch |
 
 Service nhận repository/session abstraction qua dependency injection. Unit test có thể dùng fake repository; test PostgreSQL thật vẫn bắt buộc để chứng minh uniqueness và transaction.
