@@ -43,7 +43,7 @@ Tài liệu này mô tả cách hoàn thiện CI/CD, deployment, observability, 
 | Image scan | Trivy scan image backend/frontend, báo cáo (không chặn) ở giai đoạn đầu | — |
 | Frontend | Job lint/test/build; Dockerfile multi-stage (Node build → Nginx). Nginx serve UI và proxy `/api` → backend; chỉ mở một web port | E06 (phối hợp TASK-003) |
 | Gate chặn merge | Branch protection trên `main`: bắt buộc các check pass; tạo PR cố ý fail test làm bằng chứng | E07 |
-| Tài liệu | Hướng dẫn chạy local và bảng biến môi trường | — |
+| Tài liệu | Hướng dẫn chạy local và bảng biến môi trường: [local-dev.md](local-dev.md) | — |
 
 ## 4. Giai đoạn B — Continuous Deployment lên máy demo
 

@@ -28,13 +28,13 @@ Các đường dẫn backend viết ngắn ở cùng hàng được hiểu là n
 | E04 | Slot đúng quy tắc và timezone | Schema/service | `test_normalize_start_time_rejects_invalid_slots`, `test_normalize_start_time_converts_to_utc` | Từ chối slot sai; chuẩn hóa về UTC theo lịch `Asia/Ho_Chi_Minh` | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
 | E05 | Hủy giữ lịch sử và cho đặt lại | Service/repository | `test_cancel_is_idempotent_and_allows_rebooking`, `test_cancel_unknown_id_returns_404` | 204 khi hủy/lặp lại; bản ghi cancelled còn; đặt lại 201; ID lạ 404 | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
 | E06 | UI phản ánh response thật | BookingPage + HTTP client | Frontend tests và E2E | Loading/error/success đúng; 409 không hiển thị thành công | Chưa kiểm chứng |
-| E07 | Lỗi code chặn phát hành | `ci.yml`, `release.yml` | Một PR cố ý fail test ở branch demo | CI fail; không deploy qua pipeline chuẩn | Chưa kiểm chứng |
+| E07 | Lỗi code chặn phát hành | `ci.yml`, `release.yml` | Một PR cố ý fail test ở branch demo | CI fail; không deploy qua pipeline chuẩn | [Đạt trên GitHub](evidence/2026-10-21-container-ci.md) |
 | E08 | Định danh release truy vết được | Manifest + `/api/version` | So tag/SHA/digest với deployment | Version API khớp manifest và images đang chạy | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
 | E09 | Telemetry chỉ ra request lỗi | Instrumentation + collector pipelines | Request fault rồi query backend telemetry | Có metrics, trace, log cùng trace ID và release | [Backend đạt cục bộ; chưa có query end-to-end](evidence/2026-10-21-backend-observability.md) |
 | E10 | Telemetry lỗi không chặn booking | SDK timeout/batch | `test_collector_outage_does_not_block_booking_path` hoặc drill | Booking vẫn thành công; không chờ export vô hạn | [Đạt cục bộ](evidence/2026-10-21-backend-observability.md) |
 | E11 | Alert hoạt động dưới tải | Prometheus rules + Alertmanager | Fault injection có timestamp | Firing trong mục tiêu 3 phút; resolved sau phục hồi/cửa sổ đánh giá | [Fault injector đã có; alert chưa kiểm chứng](evidence/2026-10-21-backend-observability.md) |
 | E12 | Deploy lỗi rollback được | Deploy/rollback scripts + smoke tests | Release drill lỗi rồi khôi phục | ≤5 phút; version cũ; smoke test pass; booking cũ còn | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
-| E13 | Dữ liệu tồn tại qua recreate | PostgreSQL volume | Tạo booking, recreate API rồi đọc lại | Row không mất | Chưa kiểm chứng |
+| E13 | Dữ liệu tồn tại qua recreate | PostgreSQL volume | Tạo booking, recreate API rồi đọc lại | Row không mất | [Đạt trên CI](evidence/2026-10-21-container-ci.md) |
 | E14 | Release tương thích schema cũ | Alembic + migration review | Chạy code bản rollback với schema sau migration | Tạo/xem/hủy đều pass | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
 | E15 | Độ trễ đạt mục tiêu tham chiếu | Load script + histogram | 10 request/giây, 10 phút, recording | ≥95% dưới 500 ms; báo đủ VM/dataset/phiên bản | Chưa kiểm chứng |
 | E16 | API chết vẫn được phát hiện | Blackbox probe + alert rule | Stop API trong môi trường drill | Probe fail, alert xuất hiện dù HTTP counter không tăng | Chưa kiểm chứng |
