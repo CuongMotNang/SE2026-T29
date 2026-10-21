@@ -1,6 +1,9 @@
 # Evidence — Đối chiếu thiết kế, code và tests
 
-Trạng thái ngày 21/10/2026: **đã có Booking API backend, Release/Deploy/Rollback (M4), fault injection và instrumentation backend; chưa có frontend hoặc stack observability end-to-end**. Collector, dashboard, alert và evidence từ môi trường demo vẫn chưa được xem là hoàn thành chỉ vì backend đã phát sinh telemetry.
+Trạng thái ngày 21/10/2026: **đã có Booking API backend, Release/Deploy/Rollback (M4), fault
+injection, instrumentation và cấu hình observability stack; chưa có frontend hoặc kết quả chạy
+observability end-to-end trên máy demo**. Collector, dashboard và alert đã có dạng code nhưng E09,
+E11, E16 chỉ hoàn thành sau khi lưu query, ảnh và timestamp từ môi trường thật.
 
 ## 1. Cấu trúc repository dự kiến
 
@@ -10,7 +13,7 @@ Trạng thái ngày 21/10/2026: **đã có Booking API backend, Release/Deploy/R
 | Bootstrap/API | `backend/app/main.py`, `config.py`, `api/appointments.py`, `api/health.py`, `api/version.py`, `api/slots.py`, `schemas/appointment.py` — đã có | Hợp đồng API và wiring |
 | Business/data | `backend/app/services/booking.py`, `repositories/appointments.py`, `models/appointment.py`, `db.py`, `domain/errors.py` — đã có | Hướng API → service → repository → DB |
 | Migrations | `backend/alembic/versions/` — đã có migration đầu tiên | Transaction/schema, uniqueness của active booking |
-| Telemetry | `backend/app/telemetry/`, `backend/app/request_logging.py`, `backend/app/services/fault_injection.py` — backend đã có; stack Collector/Grafana chưa có | HTTP metrics, spans, log correlation và reliability drill |
+| Telemetry | `backend/app/telemetry/`, `deploy/compose.observability.yaml`, `deploy/observability/` — code và cấu hình stack đã có, chưa chạy drill | HTTP metrics, spans, log correlation và reliability drill |
 | Tests | `backend/tests/unit/`, `backend/tests/integration/` — đã có; frontend/E2E/load chưa có | Kiểm chứng quy tắc và hệ thống |
 | Container/deploy | `backend/Dockerfile`, `deploy/compose.yaml`, `deploy/compose.production.yaml` — đã có | ADR-001 và runtime services |
 | CI/CD | `.github/workflows/ci.yml`, `release.yml`, `rollback.yml`, `scripts/deploy.sh`, `scripts/rollback.sh`, `scripts/deploy.py`, `scripts/rollback.py` — đã có | Gates, release manifest và recovery |

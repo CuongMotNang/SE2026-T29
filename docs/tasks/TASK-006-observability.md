@@ -35,5 +35,7 @@ Thu thập metrics, traces và logs để phát hiện, điều tra lỗi và li
   version và mốc deploy; các biểu thức PromQL đã được kiểm tra bằng `promtool`.
 - Đã có provisioning cho liên kết Prometheus exemplar ↔ Tempo trace ↔ Loki log, alert rules
   `HighErrorRate`, `ApiProbeDown`, `HighLatencyP95`, runbook và bộ truy vấn thu thập evidence.
-- Còn thiếu stack Collector/Prometheus/Tempo/Loki/Grafana do phần hạ tầng TASK-006 cung cấp và
-  evidence từ reliability drill trên môi trường demo; vì vậy task chưa thể chuyển sang `Done`.
+- Đã có Compose overlay và cấu hình Collector, Prometheus, Tempo, Loki, Grafana, Alertmanager,
+  blackbox exporter, node-exporter, cAdvisor; CI kiểm tra cấu hình bằng validator của từng công cụ.
+- Còn thiếu lần chạy trên máy demo, webhook thật và evidence từ reliability drill; vì vậy task
+  chưa thể chuyển sang `Done`.

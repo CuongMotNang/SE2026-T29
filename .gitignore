@@ -15,3 +15,4 @@ reports/
 
 # Local alert receiver secret
 deploy/observability/alertmanager/discord-webhook-url
+deploy/observability.env

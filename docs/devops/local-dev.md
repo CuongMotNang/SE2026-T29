@@ -2,6 +2,9 @@
 
 Hướng dẫn dựng toàn bộ stack (PostgreSQL, migration, Booking API) trên máy cá nhân bằng một lệnh, rồi kiểm tra giống như CI.
 
+Để chạy thêm Collector, Grafana và toàn bộ monitoring stack, xem
+[Chạy observability stack](observability-local.md).
+
 ## Yêu cầu
 
 - Docker Engine 24+ và Docker Compose v2 (`docker compose version`).
