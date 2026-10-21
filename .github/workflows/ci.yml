@@ -128,6 +128,12 @@ jobs:
             --expected-release "$BOOKING_RELEASE" \
             --expected-commit-sha "$BOOKING_COMMIT_SHA"
 
+      - name: Verify bookings survive backend recreate (E13)
+        run: |
+          python -m scripts.persistence_check seed --state-file "$RUNNER_TEMP/e13.json"
+          docker compose up -d --force-recreate --no-deps --wait --wait-timeout 120 backend
+          python -m scripts.persistence_check verify --state-file "$RUNNER_TEMP/e13.json"
+
       - name: Dump service logs on failure
         if: failure()
         run: |
