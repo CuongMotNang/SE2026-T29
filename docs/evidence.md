@@ -28,7 +28,7 @@ Các đường dẫn backend viết ngắn ở cùng hàng được hiểu là n
 | E04 | Slot đúng quy tắc và timezone | Schema/service | `test_normalize_start_time_rejects_invalid_slots`, `test_normalize_start_time_converts_to_utc` | Từ chối slot sai; chuẩn hóa về UTC theo lịch `Asia/Ho_Chi_Minh` | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
 | E05 | Hủy giữ lịch sử và cho đặt lại | Service/repository | `test_cancel_is_idempotent_and_allows_rebooking`, `test_cancel_unknown_id_returns_404` | 204 khi hủy/lặp lại; bản ghi cancelled còn; đặt lại 201; ID lạ 404 | [Đạt cục bộ](evidence/2026-10-07-booking-api.md) |
 | E06 | UI phản ánh response thật | BookingPage + HTTP client | Frontend tests và E2E | Loading/error/success đúng; 409 không hiển thị thành công | Chưa kiểm chứng |
-| E07 | Lỗi code chặn phát hành | `ci.yml`, `release.yml` | Một PR cố ý fail test ở branch demo | CI fail; không deploy qua pipeline chuẩn | Chưa kiểm chứng |
+| E07 | Lỗi code chặn phát hành | `ci.yml`, `release.yml` | Một PR cố ý fail test ở branch demo | CI fail; không deploy qua pipeline chuẩn | [Đạt trên GitHub](evidence/2026-10-21-container-ci.md) |
 | E08 | Định danh release truy vết được | Manifest + `/api/version` | So tag/SHA/digest với deployment | Version API khớp manifest và images đang chạy | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
 | E09 | Telemetry chỉ ra request lỗi | Instrumentation + collector pipelines | Request fault rồi query backend telemetry | Có metrics, trace, log cùng trace ID và release | Chưa kiểm chứng |
 | E10 | Telemetry lỗi không chặn booking | SDK timeout/batch | `test_booking_when_collector_unavailable` hoặc drill | Booking vẫn thành công; không chờ export vô hạn | Chưa kiểm chứng |
