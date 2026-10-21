@@ -10,6 +10,7 @@ Implements TASK-005 requirements:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -53,7 +54,7 @@ class Deployer:
         self,
         manifest_path: Path | str,
         compose_file: Path | str = "deploy/compose.production.yaml",
-        state_dir: Path | str = "deploy",
+        state_dir: Path | str | None = None,
         base_url: str = "http://localhost:8000",
         readiness_timeout_seconds: float = 30.0,
         dry_run: bool = False,
@@ -61,7 +62,8 @@ class Deployer:
     ) -> None:
         self.manifest_path = Path(manifest_path).resolve()
         self.compose_file = Path(compose_file).resolve()
-        self.state_dir = Path(state_dir).resolve()
+        resolved_state_dir = state_dir or os.getenv("BOOKING_STATE_DIR", "deploy")
+        self.state_dir = Path(resolved_state_dir).resolve()
         self.base_url = base_url
         self.readiness_timeout_seconds = readiness_timeout_seconds
         self.dry_run = dry_run
@@ -241,7 +243,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Deterministic Booking API deploy tool")
     parser.add_argument("--manifest", required=True, help="Path to release manifest JSON")
     parser.add_argument("--compose-file", default="deploy/compose.production.yaml")
-    parser.add_argument("--state-dir", default="deploy")
+    default_state_dir = os.getenv("BOOKING_STATE_DIR", "deploy")
+    parser.add_argument(
+        "--state-dir",
+        default=default_state_dir,
+        help="Directory to store active manifests and locks (default: BOOKING_STATE_DIR)",
+    )
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--dry-run", action="store_true")
