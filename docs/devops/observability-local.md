@@ -18,6 +18,21 @@ Sửa `deploy/observability.env`, đặt mật khẩu Grafana khác mặc địn
 Discord thật vào `deploy/observability/alertmanager/discord-webhook-url`. Hai file local này không
 được commit; file webhook đã nằm trong `.gitignore`.
 
+Trên Windows PowerShell, có thể tạo hai file local và sinh mật khẩu Grafana ngẫu nhiên bằng:
+
+```powershell
+.\scripts\prepare_observability_drill.ps1
+```
+
+Khi đã có webhook thật, chạy lại mà không ghi URL vào lịch sử lệnh bằng cách đọc từ clipboard:
+
+```powershell
+.\scripts\prepare_observability_drill.ps1 -DiscordWebhookUrl (Get-Clipboard)
+```
+
+Script không in mật khẩu hoặc webhook ra terminal. Nếu chưa truyền webhook, file nhận giá trị
+placeholder và phải được cập nhật trước khi chạy alert drill.
+
 `OBS_BIND_ADDRESS=127.0.0.1` chỉ cho phép truy cập dashboard từ máy chạy stack. Trên máy demo,
 chỉ đổi thành `0.0.0.0` khi các port được giới hạn bằng firewall, LAN riêng hoặc VPN.
 
