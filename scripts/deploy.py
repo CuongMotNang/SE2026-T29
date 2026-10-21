@@ -21,6 +21,33 @@ from scripts.release_manifest import ReleaseManifest
 from scripts.smoke_test import SmokeTestRunner
 
 
+def build_compose_up_command(
+    env_file: Path | str,
+    compose_file: Path | str,
+    detach: bool = True,
+    remove_orphans: bool = True,
+) -> list[str]:
+    """Build a deterministic docker compose up command list.
+
+    Shared between deploy and rollback orchestration to guarantee consistent
+    flag ordering (--env-file, -f, up, -d, --remove-orphans).
+    """
+    cmd = [
+        "docker",
+        "compose",
+        "--env-file",
+        str(env_file),
+        "-f",
+        str(compose_file),
+        "up",
+    ]
+    if detach:
+        cmd.append("-d")
+    if remove_orphans:
+        cmd.append("--remove-orphans")
+    return cmd
+
+
 class Deployer:
     def __init__(
         self,
@@ -99,18 +126,8 @@ class Deployer:
             # 1. Pull pinned digest
             self.execute_command(["docker", "pull", backend_spec.pinned_reference])
 
-            # 2. Recreate containers using docker compose
-            compose_cmd = [
-                "docker",
-                "compose",
-                "--env-file",
-                str(self.env_file),
-                "-f",
-                str(self.compose_file),
-                "up",
-                "-d",
-                "--remove-orphans",
-            ]
+            # 2. Recreate containers using docker compose builder
+            compose_cmd = build_compose_up_command(self.env_file, self.compose_file)
             self.execute_command(compose_cmd)
 
     def run_smoke_tests(self, manifest: ReleaseManifest) -> bool:

@@ -16,6 +16,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
+from scripts.deploy import build_compose_up_command
 from scripts.deploy_lock import DeploymentLock, DeploymentLockError
 from scripts.release_manifest import ReleaseManifest
 from scripts.smoke_test import SmokeTestRunner
@@ -89,17 +90,7 @@ class Rollbacker:
         print(f"[INFO] Restoring previous container using digest: {backend_spec.pinned_reference}")
         if not self.skip_container_ops:
             # Recreate containers without touching database volume
-            compose_cmd = [
-                "docker",
-                "compose",
-                "--env-file",
-                str(self.env_file),
-                "-f",
-                str(self.compose_file),
-                "up",
-                "-d",
-                "--remove-orphans",
-            ]
+            compose_cmd = build_compose_up_command(self.env_file, self.compose_file)
             self.execute_command(compose_cmd)
 
     def run_smoke_tests(self, manifest: ReleaseManifest) -> bool:
