@@ -5,6 +5,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from threading import Lock
+from time import time
 from typing import Any
 
 from fastapi import FastAPI
@@ -44,6 +45,7 @@ class TelemetryRuntime:
     tracer: Tracer
     meter: Meter
     booking_conflicts: Counter
+    deployment_timestamp: Any
     resource: Resource
     enabled: bool
     tracer_provider: TracerProvider | None = None
@@ -245,6 +247,12 @@ def configure_telemetry(
     if not config.enabled:
         tracer = trace.NoOpTracerProvider().get_tracer(INSTRUMENTATION_SCOPE)
         meter = metrics.NoOpMeterProvider().get_meter(INSTRUMENTATION_SCOPE)
+        deployment_timestamp = meter.create_gauge(
+            "booking.deployment.timestamp",
+            unit="s",
+            description="Unix timestamp when this Booking API process started",
+        )
+        deployment_timestamp.set(int(time()))
         return TelemetryRuntime(
             tracer=tracer,
             meter=meter,
@@ -253,6 +261,7 @@ def configure_telemetry(
                 unit="{conflict}",
                 description="Number of booking attempts rejected with HTTP 409",
             ),
+            deployment_timestamp=deployment_timestamp,
             resource=resource,
             enabled=False,
         )
@@ -327,6 +336,12 @@ def _configure_enabled_telemetry(
         raise
     tracer = tracer_provider.get_tracer(INSTRUMENTATION_SCOPE)
     meter = meter_provider.get_meter(INSTRUMENTATION_SCOPE)
+    deployment_timestamp = meter.create_gauge(
+        "booking.deployment.timestamp",
+        unit="s",
+        description="Unix timestamp when this Booking API process started",
+    )
+    deployment_timestamp.set(int(time()))
     runtime = TelemetryRuntime(
         tracer=tracer,
         meter=meter,
@@ -335,6 +350,7 @@ def _configure_enabled_telemetry(
             unit="{conflict}",
             description="Number of booking attempts rejected with HTTP 409",
         ),
+        deployment_timestamp=deployment_timestamp,
         resource=resource,
         enabled=True,
         tracer_provider=tracer_provider,
