@@ -111,4 +111,27 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: false
+          load: true
           tags: booking-backend:ci-test
+
+      - name: Scan backend image with Trivy (report only)
+        run: |
+          mkdir -p reports
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD/reports:/reports" \
+            aquasec/trivy:0.58.1 image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 0 \
+            --format table \
+            --output /reports/trivy-backend.txt \
+            booking-backend:ci-test
+          cat reports/trivy-backend.txt
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-backend
+          path: reports/trivy-backend.txt
