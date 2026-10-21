@@ -31,5 +31,9 @@ Thu thập metrics, traces và logs để phát hiện, điều tra lỗi và li
 - Đã có instrumentation FastAPI/SQLAlchemy, span nghiệp vụ, metric booking conflict, JSON
   request log có trace correlation và OTLP exporter với queue/timeout hữu hạn.
 - Đã có fault injection `error`/`latency` có tỷ lệ và thời điểm tự tắt, thực thi trước khi ghi DB.
-- Còn thiếu Collector, Prometheus/Tempo/Loki/Grafana, dashboard, alert rules và evidence từ
-  reliability drill trên môi trường demo; vì vậy task chưa thể chuyển sang `Done`.
+- Đã có dashboard Grafana cho golden signals, booking conflict, probe, tài nguyên host/container,
+  version và mốc deploy; các biểu thức PromQL đã được kiểm tra bằng `promtool`.
+- Đã có provisioning cho liên kết Prometheus exemplar ↔ Tempo trace ↔ Loki log, alert rules
+  `HighErrorRate`, `ApiProbeDown`, `HighLatencyP95`, runbook và bộ truy vấn thu thập evidence.
+- Còn thiếu stack Collector/Prometheus/Tempo/Loki/Grafana do phần hạ tầng TASK-006 cung cấp và
+  evidence từ reliability drill trên môi trường demo; vì vậy task chưa thể chuyển sang `Done`.
