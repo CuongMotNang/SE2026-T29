@@ -127,3 +127,78 @@ def test_v010_reference_manifest_file_is_valid():
     assert manifest.release == "v0.1.0"
     assert manifest.migration_revision == "20261007_0001"
     assert manifest.validate() == []
+
+
+def test_manifest_with_frontend_image_passes_validation():
+    frontend_digest = "sha256:5c882b528a4be46313b29c926e838e55e42d765b26bf3b7a5a87be4e04991234"
+    manifest = ReleaseManifest(
+        release="v0.2.0",
+        commit_sha="a1b2c3d4e5f6789012345678901234567890abcd",
+        migration_revision="20261007_0001",
+        images={
+            "backend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-backend",
+                tag="v0.2.0",
+                digest=VALID_DIGEST,
+            ),
+            "frontend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-frontend",
+                tag="v0.2.0",
+                digest=frontend_digest,
+            ),
+        },
+    )
+    assert manifest.validate() == []
+    assert manifest.backend_image is not None
+    assert manifest.backend_image.digest == VALID_DIGEST
+    assert manifest.frontend_image is not None
+    assert manifest.frontend_image.digest == frontend_digest
+    assert (
+        manifest.frontend_image.pinned_reference
+        == f"ghcr.io/cuongmotnang/booking-frontend@{frontend_digest}"
+    )
+
+
+def test_manifest_rejects_invalid_frontend_digest():
+    manifest = ReleaseManifest(
+        release="v0.2.0",
+        commit_sha="a1b2c3d4e5f6789012345678901234567890abcd",
+        migration_revision="20261007_0001",
+        images={
+            "backend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-backend",
+                tag="v0.2.0",
+                digest=VALID_DIGEST,
+            ),
+            "frontend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-frontend",
+                tag="v0.2.0",
+                digest="sha256:invalid-short-digest",
+            ),
+        },
+    )
+    errors = manifest.validate()
+    assert len(errors) == 1
+    assert "Image 'frontend' digest 'sha256:invalid-short-digest' is invalid" in errors[0]
+
+
+def test_manifest_rejects_latest_tag_for_frontend():
+    manifest = ReleaseManifest(
+        release="v0.2.0",
+        commit_sha="a1b2c3d4e5f6789012345678901234567890abcd",
+        migration_revision="20261007_0001",
+        images={
+            "backend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-backend",
+                tag="v0.2.0",
+                digest=VALID_DIGEST,
+            ),
+            "frontend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-frontend",
+                tag="latest",
+                digest=VALID_DIGEST,
+            ),
+        },
+    )
+    errors = manifest.validate()
+    assert any("Image 'frontend' uses forbidden tag 'latest'" in e for e in errors)
