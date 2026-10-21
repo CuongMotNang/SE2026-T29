@@ -9,3 +9,6 @@ htmlcov/
 .env
 backend/.postgres-test-data/
 backend/postgres-test.log
+
+# CI reports
+reports/
