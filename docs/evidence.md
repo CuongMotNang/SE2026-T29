@@ -40,7 +40,7 @@ Các đường dẫn backend viết ngắn ở cùng hàng được hiểu là n
 | E13 | Dữ liệu tồn tại qua recreate | PostgreSQL volume | Tạo booking, recreate API rồi đọc lại | Row không mất | [Đạt trên CI](evidence/2026-10-21-container-ci.md) |
 | E14 | Release tương thích schema cũ | Alembic + migration review | Chạy code bản rollback với schema sau migration | Tạo/xem/hủy đều pass | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
 | E15 | Độ trễ đạt mục tiêu tham chiếu | Load script + histogram | 10 request/giây, 10 phút, recording | ≥95% dưới 500 ms; báo đủ VM/dataset/phiên bản | Chưa kiểm chứng |
-| E16 | API chết vẫn được phát hiện | Blackbox probe + alert rule | Stop API trong môi trường drill | Probe fail, alert xuất hiện dù HTTP counter không tăng | [Rule và quy trình đã có; probe chưa kiểm chứng](evidence/observability/README.md) |
+| E16 | API chết vẫn được phát hiện | Blackbox probe + alert rule | Stop API trong môi trường drill | Probe fail, alert xuất hiện dù HTTP counter không tăng | [Đạt cục bộ cho probe và Prometheus alert](evidence/observability/2026-10-22-local-e16.md) |
 
 Test E03 dùng hai kết nối/transaction độc lập được khởi động đồng thời và lặp có kiểm soát. Gọi tuần tự hai lần chỉ kiểm chứng duplicate booking thông thường. SQLite/in-memory fake không chứng minh hành vi partial index/concurrency của PostgreSQL.
 
