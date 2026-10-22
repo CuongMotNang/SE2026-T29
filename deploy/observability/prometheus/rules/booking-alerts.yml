@@ -1,0 +1,96 @@
+groups:
+  - name: booking-api-sli
+    interval: 15s
+    rules:
+      - record: booking:http_requests:rate1m
+        expr: >-
+          sum by (http_route) (
+            rate(http_server_request_duration_seconds_count{
+              service_name="booking-api"
+            }[1m])
+          )
+
+      - record: booking:http_5xx_ratio:rate1m
+        expr: >-
+          sum (
+            rate(http_server_request_duration_seconds_count{
+              service_name="booking-api",
+              http_response_status_code=~"5.."
+            }[1m])
+          )
+          /
+          clamp_min(
+            sum (
+              rate(http_server_request_duration_seconds_count{
+                service_name="booking-api"
+              }[1m])
+            ),
+            0.000001
+          )
+
+      - record: booking:http_request_duration_seconds:p95_5m
+        expr: >-
+          histogram_quantile(
+            0.95,
+            sum by (le, http_route) (
+              rate(http_server_request_duration_seconds_bucket{
+                service_name="booking-api"
+              }[5m])
+            )
+          )
+
+  - name: booking-api-alerts
+    interval: 15s
+    rules:
+      - alert: HighErrorRate
+        expr: >-
+          booking:http_5xx_ratio:rate1m > 0.05
+          and
+          sum (
+            increase(http_server_request_duration_seconds_count{
+              service_name="booking-api"
+            }[1m])
+          ) >= 100
+        for: 2m
+        labels:
+          severity: critical
+          service: booking-api
+        annotations:
+          summary: Booking API has a high HTTP 5xx rate
+          description: >-
+            More than 5% of at least 100 requests in one minute returned 5xx,
+            and the condition has remained true for two minutes.
+          runbook_url: docs/runbooks/observability-alerts.md#higherrorrate
+
+      - alert: ApiProbeDown
+        expr: probe_success{job="booking-api-readiness"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: booking-api
+        annotations:
+          summary: Booking API readiness probe is failing
+          description: >-
+            The independent blackbox readiness probe has failed continuously
+            for one minute.
+          runbook_url: docs/runbooks/observability-alerts.md#apiprobedown
+
+      - alert: HighLatencyP95
+        expr: >-
+          max(booking:http_request_duration_seconds:p95_5m) > 0.5
+          and
+          sum (
+            increase(http_server_request_duration_seconds_count{
+              service_name="booking-api"
+            }[5m])
+          ) >= 100
+        for: 5m
+        labels:
+          severity: warning
+          service: booking-api
+        annotations:
+          summary: Booking API p95 latency is above 500 ms
+          description: >-
+            At least one route has exceeded 500 ms p95 latency for five minutes
+            while the API received at least 100 requests.
+          runbook_url: docs/runbooks/observability-alerts.md#highlatencyp95

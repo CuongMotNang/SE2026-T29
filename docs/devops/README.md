@@ -30,8 +30,8 @@ Tài liệu này mô tả cách hoàn thiện CI/CD, deployment, observability, 
 
 1. Chưa có bước deploy thật lên máy demo. `rollback.yml` chạy trên `ubuntu-latest` nên `docker compose` không tác động tới môi trường demo, và `deploy/previous-manifest.json` mất khi runner kết thúc.
 2. Chưa có Dockerfile frontend và reverse proxy; compose production mở thẳng port 8000 của backend.
-3. Backend đã phát sinh traces, metrics và JSON logs qua OTLP; chưa có Collector, nơi lưu trữ,
-   dashboard hoặc alert end-to-end.
+3. Backend và cấu hình observability stack đã có trong repository; Collector, storage,
+   dashboard và alert chưa được chạy end-to-end trên máy demo.
 4. CI chưa có `concurrency`, cache, image scan, Compose smoke test; branch `main` chưa bắt buộc check xanh.
 
 ## 3. Giai đoạn A — Hoàn thiện CI (TASK-004)

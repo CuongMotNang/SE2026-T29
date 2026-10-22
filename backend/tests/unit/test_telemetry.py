@@ -160,6 +160,7 @@ def test_business_signals_share_release_resource_and_trace_context() -> None:
         assert booking_span.resource.attributes["commit_sha"] == "abc1234"
         assert log_record.trace_id == booking_span.context.trace_id
         assert "booking_conflicts_total" in metric_names
+        assert "booking.deployment.timestamp" in metric_names
         assert all(
             item.resource.attributes["service.version"] == "v0.2.0"
             for item in metrics_data.resource_metrics

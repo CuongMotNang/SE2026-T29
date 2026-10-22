@@ -86,7 +86,7 @@ flowchart TB
 | Lê Văn Cường | Frontend + E2E | TASK-003 | Todo | React UI, test E2E |
 | Nguyễn Mai Hoàng Anh | DevOps — CI/CD và hạ tầng monitoring | TASK-004 (+ hạ tầng TASK-006) | Todo | CI, CD lên máy demo, dựng stack observability |
 | Nguyễn Việt Anh | Release và độ tin cậy | TASK-005, TASK-007 | TASK-005 Done | Load test, incident drill, rollback, evidence |
-| Vũ Thành Công | Observability — telemetry, dashboard, alert | TASK-006 | Todo | Instrument OpenTelemetry, dashboard, alert rules |
+| Vũ Thành Công | Observability — telemetry, dashboard, alert | TASK-006 | In Progress | Instrument OpenTelemetry, dashboard, alert rules |
 
 TASK-001 và TASK-007 trước đây chưa có người phụ trách. Bảng trên đề xuất giao TASK-001 cho Cương và TASK-007 cho Việt Anh, vì phần việc chính của hai bạn đã xong. Trong TASK-006, Hoàng Anh dựng hạ tầng (các container, cấu hình lưu trữ), còn Công làm phần nội dung (instrument, dashboard, alert).
 
