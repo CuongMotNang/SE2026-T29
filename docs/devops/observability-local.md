@@ -99,7 +99,7 @@ Mở `http://localhost:9090/targets` và xác nhận các job sau đều `UP`:
 Sau khi gọi API vài lần, chạy các truy vấn nhanh trong Prometheus:
 
 ```promql
-sum(rate(http_server_request_duration_seconds_count{service_name="booking-api"}[1m]))
+sum(rate(http_server_duration_milliseconds_count{service_name="booking-api"}[1m]))
 ```
 
 ```promql
