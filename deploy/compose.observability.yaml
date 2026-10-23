@@ -1,0 +1,180 @@
+# Observability overlay for deploy/compose.yaml or deploy/compose.production.yaml.
+# Example: docker compose -f deploy/compose.yaml -f deploy/compose.observability.yaml up -d --build
+services:
+  backend:
+    environment:
+      BOOKING_TELEMETRY_ENABLED: "true"
+      BOOKING_OTLP_ENDPOINT: http://otel-collector:4317
+      BOOKING_OTLP_INSECURE: "true"
+    depends_on:
+      otel-collector:
+        condition: service_started
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.162.0
+    command:
+      - --config=/etc/otelcol-contrib/config.yaml
+    restart: unless-stopped
+    depends_on:
+      tempo:
+        condition: service_started
+      loki:
+        condition: service_started
+    volumes:
+      - ./observability/otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    expose:
+      - "4317"
+      - "4318"
+      - "8889"
+      - "13133"
+    networks:
+      - app_net
+      - internal
+
+  prometheus:
+    image: prom/prometheus:v3.13.5
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+      - --web.enable-remote-write-receiver
+    restart: unless-stopped
+    depends_on:
+      - otel-collector
+      - alertmanager
+      - blackbox-exporter
+      - node-exporter
+      - cadvisor
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${OBS_BIND_ADDRESS:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - app_net
+      - internal
+
+  tempo:
+    image: grafana/tempo:2.10.8
+    command:
+      - -config.file=/etc/tempo/tempo.yml
+    restart: unless-stopped
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    expose:
+      - "3200"
+      - "4317"
+      - "4318"
+    networks:
+      - internal
+
+  loki:
+    image: grafana/loki:3.7.8
+    command:
+      - -config.file=/etc/loki/loki.yml
+    restart: unless-stopped
+    volumes:
+      - ./observability/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    expose:
+      - "3100"
+    networks:
+      - internal
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${OBS_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
+    networks:
+      - internal
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${ALERTMANAGER_DISCORD_WEBHOOK_FILE:-./observability/alertmanager/discord-webhook-url.example}:/run/secrets/discord_webhook_url:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "${OBS_BIND_ADDRESS:-127.0.0.1}:${ALERTMANAGER_PORT:-9093}:9093"
+    networks:
+      - internal
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.27.0
+    command:
+      - --config.file=/etc/blackbox_exporter/blackbox.yml
+    restart: unless-stopped
+    volumes:
+      - ./observability/blackbox/blackbox.yml:/etc/blackbox_exporter/blackbox.yml:ro
+    expose:
+      - "9115"
+    networks:
+      - app_net
+      - internal
+
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro,rslave
+    expose:
+      - "9100"
+    networks:
+      - internal
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.60.6
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    expose:
+      - "8080"
+    networks:
+      - internal
+
+networks:
+  app_net:
+  internal:
+
+volumes:
+  prometheus_data:
+  tempo_data:
+  loki_data:
+  grafana_data:
+  alertmanager_data:

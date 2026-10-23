@@ -1,0 +1,10 @@
+modules:
+  http_booking_ready:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_status_codes:
+        - 200

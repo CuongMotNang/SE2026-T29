@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime
+from contextlib import contextmanager
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
 from uuid import uuid4
@@ -9,6 +10,7 @@ from app.domain import AppointmentNotFound, InvalidSlot
 from app.models import AppointmentStatus
 from app.repositories import AppointmentRepository
 from app.services.booking import BOOKING_TIMEZONE, BookingService, normalize_start_time
+from app.services.fault_injection import BookingFaultInjector, InjectedBookingFault
 
 NOW = datetime(2026, 10, 7, 3, 0, tzinfo=UTC)
 
@@ -50,6 +52,16 @@ class FakeRepository:
         return {self.appointment.starts_at}
 
 
+class FakeTelemetry:
+    def __init__(self) -> None:
+        self.operations: list[str] = []
+
+    @contextmanager
+    def booking_span(self, operation: str):
+        self.operations.append(operation)
+        yield
+
+
 def test_normalize_start_time_converts_to_utc() -> None:
     starts_at = datetime(2026, 10, 10, 10, 0, tzinfo=BOOKING_TIMEZONE)
 
@@ -74,7 +86,12 @@ def test_normalize_start_time_rejects_invalid_slots(starts_at: datetime) -> None
 
 async def test_create_uses_normalized_time_and_commits() -> None:
     repository = FakeRepository()
-    service = BookingService(cast(AppointmentRepository, repository), now_provider=lambda: NOW)
+    telemetry = FakeTelemetry()
+    service = BookingService(
+        cast(AppointmentRepository, repository),
+        now_provider=lambda: NOW,
+        telemetry=telemetry,
+    )
 
     appointment = await service.create(
         "Cuong",
@@ -84,11 +101,41 @@ async def test_create_uses_normalized_time_and_commits() -> None:
     assert repository.created == ("Cuong", datetime(2026, 10, 10, 3, 0, tzinfo=UTC))
     assert repository.commits == 1
     assert appointment.status == AppointmentStatus.BOOKED.value
+    assert telemetry.operations == ["create"]
+
+
+async def test_create_injects_error_before_repository_write() -> None:
+    repository = FakeRepository()
+    injector = BookingFaultInjector(
+        mode="error",
+        until=NOW + timedelta(hours=1),
+        now_provider=lambda: NOW,
+        random_provider=lambda: 0.0,
+    )
+    service = BookingService(
+        cast(AppointmentRepository, repository),
+        now_provider=lambda: NOW,
+        fault_injector=injector,
+    )
+
+    with pytest.raises(InjectedBookingFault):
+        await service.create(
+            "Cuong",
+            datetime(2026, 10, 10, 10, 0, tzinfo=BOOKING_TIMEZONE),
+        )
+
+    assert repository.created is None
+    assert repository.commits == 0
 
 
 async def test_cancel_is_idempotent() -> None:
     repository = FakeRepository()
-    service = BookingService(cast(AppointmentRepository, repository), now_provider=lambda: NOW)
+    telemetry = FakeTelemetry()
+    service = BookingService(
+        cast(AppointmentRepository, repository),
+        now_provider=lambda: NOW,
+        telemetry=telemetry,
+    )
     appointment = await service.create(
         "Cuong",
         datetime(2026, 10, 10, 10, 0, tzinfo=BOOKING_TIMEZONE),
@@ -100,6 +147,7 @@ async def test_cancel_is_idempotent() -> None:
     assert appointment.status == AppointmentStatus.CANCELLED.value
     assert appointment.cancelled_at == NOW
     assert repository.commits == 2
+    assert telemetry.operations == ["create", "cancel", "cancel"]
 
 
 async def test_cancel_unknown_appointment() -> None:

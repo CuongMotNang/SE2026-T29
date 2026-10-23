@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import builtins
 from collections.abc import Callable
+from contextlib import nullcontext
 from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from app.domain import AppointmentNotFound, InvalidSlot
 from app.models import Appointment, AppointmentStatus
 from app.repositories import AppointmentRepository
+from app.services.fault_injection import BookingFaultInjector
+from app.telemetry import TelemetryRuntime
 
 BOOKING_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 SLOT_MINUTES = 30
@@ -37,31 +41,43 @@ class BookingService:
         self,
         repository: AppointmentRepository,
         now_provider: Callable[[], datetime] = utc_now,
+        fault_injector: BookingFaultInjector | None = None,
+        telemetry: TelemetryRuntime | None = None,
     ) -> None:
         self.repository = repository
         self.now_provider = now_provider
+        self.fault_injector = fault_injector or BookingFaultInjector()
+        self.telemetry = telemetry
+
+    def _booking_span(self, operation: str) -> Any:
+        if self.telemetry is None:
+            return nullcontext()
+        return self.telemetry.booking_span(operation)
 
     async def create(self, customer_name: str, starts_at: datetime) -> Appointment:
-        normalized_start = normalize_start_time(starts_at, self.now_provider())
-        appointment = await self.repository.create(customer_name, normalized_start)
-        await self.repository.commit()
-        await self.repository.refresh(appointment)
-        return appointment
+        with self._booking_span("create"):
+            normalized_start = normalize_start_time(starts_at, self.now_provider())
+            await self.fault_injector.before_create()
+            appointment = await self.repository.create(customer_name, normalized_start)
+            await self.repository.commit()
+            await self.repository.refresh(appointment)
+            return appointment
 
     async def list(self, limit: int, offset: int) -> tuple[list[Appointment], int]:
         return await self.repository.list(limit, offset)
 
     async def cancel(self, appointment_id: UUID) -> None:
-        appointment = await self.repository.get(appointment_id)
-        if appointment is None:
-            raise AppointmentNotFound("Appointment was not found")
+        with self._booking_span("cancel"):
+            appointment = await self.repository.get(appointment_id)
+            if appointment is None:
+                raise AppointmentNotFound("Appointment was not found")
 
-        if appointment.status == AppointmentStatus.CANCELLED.value:
-            return
+            if appointment.status == AppointmentStatus.CANCELLED.value:
+                return
 
-        appointment.status = AppointmentStatus.CANCELLED.value
-        appointment.cancelled_at = self.now_provider().astimezone(UTC)
-        await self.repository.commit()
+            appointment.status = AppointmentStatus.CANCELLED.value
+            appointment.cancelled_at = self.now_provider().astimezone(UTC)
+            await self.repository.commit()
 
     async def available_slots(self, day: date) -> builtins.list[datetime]:
         local_start = datetime.combine(day, time(0, 0), tzinfo=BOOKING_TIMEZONE)
