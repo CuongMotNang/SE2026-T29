@@ -202,3 +202,75 @@ def test_deploy_auto_rollbacks_on_smoke_test_failure(
     # Verify state was safely rolled back to v0.1.0
     current_mf = deploy_state / "current-manifest.json"
     assert ReleaseManifest.load(current_mf).release == "v0.1.0"
+
+
+def test_deployer_configurable_state_dir_explicit(tmp_path: Path, v1_manifest: Path):
+    custom_state = tmp_path / "custom_state"
+    deployer = Deployer(
+        manifest_path=v1_manifest,
+        state_dir=custom_state,
+        skip_container_ops=True,
+    )
+    assert deployer.state_dir == custom_state.resolve()
+    assert deployer.current_manifest_file == custom_state.resolve() / "current-manifest.json"
+    assert deployer.previous_manifest_file == custom_state.resolve() / "previous-manifest.json"
+    assert deployer.env_file == custom_state.resolve() / ".env.production"
+    assert deployer.lock_dir == custom_state.resolve() / ".deploy.lock"
+
+
+def test_deployer_configurable_state_dir_from_env(
+    tmp_path: Path, v1_manifest: Path, monkeypatch: pytest.MonkeyPatch
+):
+    env_state = tmp_path / "env_state"
+    monkeypatch.setenv("BOOKING_STATE_DIR", str(env_state))
+
+    deployer = Deployer(manifest_path=v1_manifest, skip_container_ops=True)
+    assert deployer.state_dir == env_state.resolve()
+    assert deployer.current_manifest_file == env_state.resolve() / "current-manifest.json"
+    assert deployer.env_file == env_state.resolve() / ".env.production"
+
+
+def test_deployer_configurable_state_dir_default_fallback(
+    v1_manifest: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.delenv("BOOKING_STATE_DIR", raising=False)
+    deployer = Deployer(manifest_path=v1_manifest, skip_container_ops=True)
+    assert deployer.state_dir == Path("deploy").resolve()
+
+
+def test_rollbacker_configurable_state_dir_explicit(tmp_path: Path):
+    custom_state = tmp_path / "custom_state"
+    rollbacker = Rollbacker(
+        state_dir=custom_state,
+        skip_container_ops=True,
+    )
+    assert rollbacker.state_dir == custom_state.resolve()
+    assert rollbacker.target_manifest_path == custom_state.resolve() / "previous-manifest.json"
+    assert rollbacker.current_manifest_file == custom_state.resolve() / "current-manifest.json"
+    assert rollbacker.env_file == custom_state.resolve() / ".env.production"
+    assert rollbacker.lock_dir == custom_state.resolve() / ".deploy.lock"
+
+
+def test_rollbacker_configurable_state_dir_from_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    env_state = tmp_path / "env_state"
+    monkeypatch.setenv("BOOKING_STATE_DIR", str(env_state))
+
+    rollbacker = Rollbacker(skip_container_ops=True)
+    assert rollbacker.state_dir == env_state.resolve()
+    assert rollbacker.target_manifest_path == env_state.resolve() / "previous-manifest.json"
+
+
+def test_rollbacker_custom_target_manifest_overrides_state_dir(tmp_path: Path):
+    custom_state = tmp_path / "custom_state"
+    explicit_target = tmp_path / "custom_prev.json"
+
+    rollbacker = Rollbacker(
+        target_manifest=explicit_target,
+        state_dir=custom_state,
+        skip_container_ops=True,
+    )
+    assert rollbacker.state_dir == custom_state.resolve()
+    assert rollbacker.target_manifest_path == explicit_target.resolve()
+
