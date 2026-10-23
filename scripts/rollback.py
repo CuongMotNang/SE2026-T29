@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from scripts.deploy import build_compose_up_command
+from scripts.deploy_history import DeploymentHistory
 from scripts.deploy_lock import DeploymentLock, DeploymentLockError
 from scripts.release_manifest import ReleaseManifest
 from scripts.smoke_test import SmokeTestRunner
@@ -52,6 +53,8 @@ class Rollbacker:
         self.current_manifest_file = self.state_dir / "current-manifest.json"
         self.env_file = self.state_dir / ".env.production"
         self.lock_dir = self.state_dir / ".deploy.lock"
+        self.history = DeploymentHistory(state_dir=self.state_dir)
+        self.history_file = self.history.history_file
 
     def execute_command(self, cmd: list[str]) -> None:
         cmd_str = " ".join(cmd)
@@ -165,16 +168,23 @@ class Rollbacker:
         print("Note: PostgreSQL volume is preserved; bookings will remain intact.")
         print("=" * 60)
 
-        if self.acquire_lock:
-            with DeploymentLock(
-                lock_dir=self.lock_dir,
-                operation="rollback",
-                target_release=manifest.release,
-                timeout_seconds=5.0,
-            ):
+        with self.history.track_operation(
+            operation="rollback",
+            release=manifest.release,
+            commit_sha=manifest.commit_sha,
+            slo_target_seconds=300.0,
+            dry_run=self.dry_run,
+        ):
+            if self.acquire_lock:
+                with DeploymentLock(
+                    lock_dir=self.lock_dir,
+                    operation="rollback",
+                    target_release=manifest.release,
+                    timeout_seconds=5.0,
+                ):
+                    self._execute_rollback(manifest, start_time)
+            else:
                 self._execute_rollback(manifest, start_time)
-        else:
-            self._execute_rollback(manifest, start_time)
 
 
 def main() -> None:
