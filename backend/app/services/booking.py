@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
@@ -62,7 +63,7 @@ class BookingService:
         appointment.cancelled_at = self.now_provider().astimezone(UTC)
         await self.repository.commit()
 
-    async def available_slots(self, day: date) -> list[datetime]:
+    async def available_slots(self, day: date) -> builtins.list[datetime]:
         local_start = datetime.combine(day, time(0, 0), tzinfo=BOOKING_TIMEZONE)
         local_end = local_start + timedelta(days=1)
         utc_start = local_start.astimezone(UTC)
