@@ -63,7 +63,7 @@ class BookingService:
         await self.repository.commit()
 
     async def available_slots(self, day: date) -> list[datetime]:
-        local_start = datetime.combine(day, time.min, tzinfo=BOOKING_TIMEZONE)
+        local_start = datetime.combine(day, time(0, 0), tzinfo=BOOKING_TIMEZONE)
         local_end = local_start + timedelta(days=1)
         utc_start = local_start.astimezone(UTC)
         utc_end = local_end.astimezone(UTC)
