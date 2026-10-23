@@ -274,3 +274,139 @@ def test_rollbacker_custom_target_manifest_overrides_state_dir(tmp_path: Path):
     assert rollbacker.state_dir == custom_state.resolve()
     assert rollbacker.target_manifest_path == explicit_target.resolve()
 
+
+def test_deploy_records_history_entry_on_success(tmp_path: Path, v1_manifest: Path):
+    deploy_state = tmp_path / "deploy"
+    deployer = Deployer(
+        manifest_path=v1_manifest,
+        state_dir=deploy_state,
+        skip_container_ops=True,
+    )
+    deployer.run()
+
+    assert deployer.history_file.exists()
+    entries = deployer.history.load_entries()
+    assert len(entries) == 1
+    assert entries[0]["operation"] == "deploy"
+    assert entries[0]["release"] == "v0.1.0"
+    assert entries[0]["commit_sha"] == "1111111111111111111111111111111111111111"
+    assert entries[0]["status"] == "success"
+    assert "started_at" in entries[0]
+    assert "ended_at" in entries[0]
+    assert entries[0]["duration_seconds"] >= 0.0
+
+
+def test_deploy_and_rollback_accumulate_history(
+    tmp_path: Path, v1_manifest: Path, v2_manifest: Path
+):
+    deploy_state = tmp_path / "deploy"
+
+    # Step 1: Deploy v1
+    deployer_v1 = Deployer(
+        manifest_path=v1_manifest,
+        state_dir=deploy_state,
+        skip_container_ops=True,
+    )
+    deployer_v1.run()
+
+    # Step 2: Deploy v2
+    deployer_v2 = Deployer(
+        manifest_path=v2_manifest,
+        state_dir=deploy_state,
+        skip_container_ops=True,
+    )
+    deployer_v2.run()
+
+    # Step 3: Rollback to v1
+    previous_mf = deploy_state / "previous-manifest.json"
+    rollbacker = Rollbacker(
+        target_manifest=previous_mf,
+        state_dir=deploy_state,
+        skip_container_ops=True,
+    )
+    rollbacker.run()
+
+    entries = deployer_v1.history.load_entries()
+    assert len(entries) == 3
+    assert entries[0]["operation"] == "deploy"
+    assert entries[0]["release"] == "v0.1.0"
+    assert entries[0]["status"] == "success"
+
+    assert entries[1]["operation"] == "deploy"
+    assert entries[1]["release"] == "v0.2.0"
+    assert entries[1]["status"] == "success"
+
+    assert entries[2]["operation"] == "rollback"
+    assert entries[2]["release"] == "v0.1.0"
+    assert entries[2]["status"] == "success"
+    assert entries[2]["slo_met"] is True
+
+
+def test_deploy_failure_records_failed_history_entry(
+    tmp_path: Path, v1_manifest: Path, v2_manifest: Path
+):
+    deploy_state = tmp_path / "deploy"
+
+    # Deploy good release v1
+    deployer_v1 = Deployer(
+        manifest_path=v1_manifest,
+        state_dir=deploy_state,
+        skip_container_ops=True,
+    )
+    deployer_v1.run()
+
+    # Deploy v2 with simulated smoke test failure
+    deployer_v2 = Deployer(
+        manifest_path=v2_manifest,
+        state_dir=deploy_state,
+        skip_container_ops=False,
+    )
+
+    failed_result = [
+        SmokeTestResult(
+            success=False,
+            step="readiness_check",
+            duration_seconds=5.0,
+            message="Readiness timed out",
+            details={},
+        )
+    ]
+    recovered_result = [
+        SmokeTestResult(
+            success=True,
+            step="readiness_check",
+            duration_seconds=1.0,
+            message="Readiness ok",
+            details={},
+        )
+    ]
+
+    with patch.object(SmokeTestRunner, "run_all", side_effect=[failed_result, recovered_result]):
+        with patch.object(deployer_v2, "apply_migrations", MagicMock()):
+            with patch.object(deployer_v2, "deploy_containers", MagicMock()):
+                with patch.object(Rollbacker, "recreate_containers", MagicMock()):
+                    with pytest.raises(RuntimeError):
+                        deployer_v2.run()
+
+    entries = deployer_v2.history.load_entries()
+    # Expect entries for initial deploy, failed deploy, and auto-rollback
+    assert len(entries) >= 2
+    failed_deploy = next(
+        e for e in entries if e["operation"] == "deploy" and e["release"] == "v0.2.0"
+    )
+    assert failed_deploy["status"] == "failed"
+    assert "error" in failed_deploy
+    assert "Automatic rollback executed" in failed_deploy["error"]
+
+
+def test_dry_run_does_not_mutate_history_file(tmp_path: Path, v1_manifest: Path):
+    deploy_state = tmp_path / "deploy"
+    deployer = Deployer(
+        manifest_path=v1_manifest,
+        state_dir=deploy_state,
+        dry_run=True,
+        skip_container_ops=True,
+    )
+    deployer.run()
+
+    assert not deployer.history_file.exists()
