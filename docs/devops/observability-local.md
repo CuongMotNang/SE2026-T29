@@ -33,6 +33,21 @@ Khi đã có webhook thật, chạy lại mà không ghi URL vào lịch sử l�
 Script không in mật khẩu hoặc webhook ra terminal. Nếu chưa truyền webhook, file nhận giá trị
 placeholder và phải được cập nhật trước khi chạy alert drill.
 
+Khi chạy bằng Docker Desktop trên Windows, thêm override tương thích để bỏ mount propagation
+`rslave` mà Docker Desktop không hỗ trợ:
+
+```powershell
+docker compose `
+  --env-file deploy/observability.env `
+  -f deploy/compose.yaml `
+  -f deploy/compose.observability.yaml `
+  -f deploy/compose.observability.docker-desktop.yaml `
+  up -d --build --wait --wait-timeout 240
+```
+
+Trong chế độ này, node-exporter và cAdvisor phản ánh Linux VM của Docker Desktop, không phản ánh
+toàn bộ máy Windows. Evidence cuối cho tài nguyên host vẫn phải lấy trên máy demo Linux.
+
 `OBS_BIND_ADDRESS=127.0.0.1` chỉ cho phép truy cập dashboard từ máy chạy stack. Trên máy demo,
 chỉ đổi thành `0.0.0.0` khi các port được giới hạn bằng firewall, LAN riêng hoặc VPN.
 
@@ -84,7 +99,7 @@ Mở `http://localhost:9090/targets` và xác nhận các job sau đều `UP`:
 Sau khi gọi API vài lần, chạy các truy vấn nhanh trong Prometheus:
 
 ```promql
-sum(rate(http_server_request_duration_seconds_count{service_name="booking-api"}[1m]))
+sum(rate(http_server_duration_milliseconds_count{service_name="booking-api"}[1m]))
 ```
 
 ```promql

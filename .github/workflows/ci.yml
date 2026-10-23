@@ -200,6 +200,14 @@ jobs:
             prom/prometheus:v3.13.5 \
             check config /etc/prometheus/prometheus.yml
 
+      - name: Test Prometheus alert behavior
+        run: |
+          docker run --rm \
+            -v "$PWD/deploy/observability/prometheus:/etc/prometheus:ro" \
+            --entrypoint promtool \
+            prom/prometheus:v3.13.5 \
+            test rules /etc/prometheus/tests/booking-alerts.test.yml
+
       - name: Validate Alertmanager config
         run: |
           docker run --rm \
