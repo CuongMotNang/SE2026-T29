@@ -12,3 +12,7 @@ backend/postgres-test.log
 
 # CI reports
 reports/
+
+# Temporary files
+~$*
+
