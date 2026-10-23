@@ -1,0 +1,17 @@
+{
+  "python.analysis.extraPaths": [
+    "./backend",
+    "."
+  ],
+  "python.autoComplete.extraPaths": [
+    "./backend",
+    "."
+  ],
+  "python.testing.pytestArgs": [
+    "-c",
+    "backend/pyproject.toml",
+    "backend/tests"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
+}
