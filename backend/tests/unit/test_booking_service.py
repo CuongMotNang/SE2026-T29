@@ -11,6 +11,7 @@ from app.models import AppointmentStatus
 from app.repositories import AppointmentRepository
 from app.services.booking import BOOKING_TIMEZONE, BookingService, normalize_start_time
 from app.services.fault_injection import BookingFaultInjector, InjectedBookingFault
+from app.telemetry import TelemetryRuntime
 
 NOW = datetime(2026, 10, 7, 3, 0, tzinfo=UTC)
 
@@ -90,7 +91,7 @@ async def test_create_uses_normalized_time_and_commits() -> None:
     service = BookingService(
         cast(AppointmentRepository, repository),
         now_provider=lambda: NOW,
-        telemetry=telemetry,
+        telemetry=cast(TelemetryRuntime, telemetry),
     )
 
     appointment = await service.create(
@@ -134,7 +135,7 @@ async def test_cancel_is_idempotent() -> None:
     service = BookingService(
         cast(AppointmentRepository, repository),
         now_provider=lambda: NOW,
-        telemetry=telemetry,
+        telemetry=cast(TelemetryRuntime, telemetry),
     )
     appointment = await service.create(
         "Cuong",
