@@ -17,6 +17,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
+from scripts.deploy_history import DeploymentHistory
 from scripts.deploy_lock import DeploymentLock, DeploymentLockError
 from scripts.release_manifest import ReleaseManifest
 from scripts.smoke_test import SmokeTestRunner
@@ -73,6 +74,8 @@ class Deployer:
         self.previous_manifest_file = self.state_dir / "previous-manifest.json"
         self.env_file = self.state_dir / ".env.production"
         self.lock_dir = self.state_dir / ".deploy.lock"
+        self.history = DeploymentHistory(state_dir=self.state_dir)
+        self.history_file = self.history.history_file
 
     def execute_command(self, cmd: list[str], cwd: Path | None = None) -> None:
         cmd_str = " ".join(cmd)
@@ -193,50 +196,58 @@ class Deployer:
         print(f"Target migration: {manifest.migration_revision}")
         print("=" * 60)
 
-        with DeploymentLock(
-            lock_dir=self.lock_dir,
+        with self.history.track_operation(
             operation="deploy",
-            target_release=manifest.release,
-            timeout_seconds=5.0,
+            release=manifest.release,
+            commit_sha=manifest.commit_sha,
+            dry_run=self.dry_run,
         ):
-            # 1. Backup current manifest to previous before updating
-            if self.current_manifest_file.exists():
-                curr_content = self.current_manifest_file.read_text(encoding="utf-8")
-                self.previous_manifest_file.write_text(curr_content, encoding="utf-8")
-                print(f"[INFO] Backed up current manifest to {self.previous_manifest_file}")
+            with DeploymentLock(
+                lock_dir=self.lock_dir,
+                operation="deploy",
+                target_release=manifest.release,
+                timeout_seconds=5.0,
+            ):
+                # 1. Backup current manifest to previous before updating
+                if self.current_manifest_file.exists():
+                    curr_content = self.current_manifest_file.read_text(encoding="utf-8")
+                    self.previous_manifest_file.write_text(curr_content, encoding="utf-8")
+                    print(f"[INFO] Backed up current manifest to {self.previous_manifest_file}")
 
-            # 2. Write environment variables for compose
-            self.prepare_environment_file(manifest)
+                # 2. Write environment variables for compose
+                self.prepare_environment_file(manifest)
 
-            # 3. Apply database migrations
-            self.apply_migrations(manifest)
+                # 3. Apply database migrations
+                self.apply_migrations(manifest)
 
-            # 4. Deploy containers via compose
-            try:
-                self.deploy_containers(manifest)
-            except Exception as exc:
-                print(f"[ERROR] Container recreation failed: {exc}", file=sys.stderr)
-                self.trigger_auto_rollback()
-                raise
+                # 4. Deploy containers via compose
+                try:
+                    self.deploy_containers(manifest)
+                except Exception as exc:
+                    print(f"[ERROR] Container recreation failed: {exc}", file=sys.stderr)
+                    self.trigger_auto_rollback()
+                    raise
 
-            # 5. Run readiness and smoke test
-            smoke_ok = self.run_smoke_tests(manifest)
-            if not smoke_ok:
-                self.trigger_auto_rollback()
-                raise RuntimeError(
-                    f"Deployment failed post-deploy smoke tests for {manifest.release}. "
-                    "Automatic rollback executed."
-                )
+                # 5. Run readiness and smoke test
+                smoke_ok = self.run_smoke_tests(manifest)
+                if not smoke_ok:
+                    self.trigger_auto_rollback()
+                    raise RuntimeError(
+                        f"Deployment failed post-deploy smoke tests for {manifest.release}. "
+                        "Automatic rollback executed."
+                    )
 
-            # 6. Save current active manifest
-            if not self.dry_run:
-                self.current_manifest_file.write_text(manifest.to_json() + "\n", encoding="utf-8")
+                # 6. Save current active manifest
+                if not self.dry_run:
+                    self.current_manifest_file.write_text(
+                        manifest.to_json() + "\n", encoding="utf-8"
+                    )
 
-            elapsed = time.monotonic() - start_time
-            print("=" * 60)
-            print(f"Deployment SUCCESSFUL for {manifest.release} in {elapsed:.2f}s!")
-            print(f"Active manifest recorded at: {self.current_manifest_file}")
-            print("=" * 60)
+                elapsed = time.monotonic() - start_time
+                print("=" * 60)
+                print(f"Deployment SUCCESSFUL for {manifest.release} in {elapsed:.2f}s!")
+                print(f"Active manifest recorded at: {self.current_manifest_file}")
+                print("=" * 60)
 
 
 def main() -> None:
