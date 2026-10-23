@@ -15,4 +15,5 @@ reports/
 
 # Temporary files
 ~$*
+.mypy_cache/
 
