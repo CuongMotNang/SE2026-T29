@@ -83,7 +83,7 @@ flowchart TB
 | Người | Role | Task | Trạng thái | Trọng tâm hiện tại |
 | --- | --- | --- | --- | --- |
 | Phạm Minh Cương | Backend + kiến trúc | TASK-001, TASK-002 | API Done | Fault injection, hỗ trợ instrument, chốt kiến trúc |
-| Lê Văn Cường | Frontend + E2E | TASK-003 | Todo | React UI, test E2E |
+| Lê Văn Cường | Frontend + E2E | TASK-003 | Done | React UI, test E2E |
 | Nguyễn Mai Hoàng Anh | DevOps — CI/CD và hạ tầng monitoring | TASK-004 (+ hạ tầng TASK-006) | Todo | CI, CD lên máy demo, dựng stack observability |
 | Nguyễn Việt Anh | Release và độ tin cậy | TASK-005, TASK-007 | TASK-005 Done | Load test, incident drill, rollback, evidence |
 | Vũ Thành Công | Observability — telemetry, dashboard, alert | TASK-006 | In Progress | Instrument OpenTelemetry, dashboard, alert rules |
