@@ -243,6 +243,45 @@ def test_real_request_correlates_log_and_trace_without_leaking_url_data() -> Non
         runtime.shutdown()
 
 
+def test_health_endpoints_are_excluded_from_fastapi_tracing() -> None:
+    span_exporter = InMemorySpanExporter()
+    application = FastAPI()
+    runtime = configure_telemetry(
+        TelemetryConfig(enabled=True, export_logs=False, schedule_delay_millis=1),
+        application=application,
+        span_exporter=span_exporter,
+        metric_reader=InMemoryMetricReader(),
+    )
+
+    @application.get("/health/live")
+    async def liveness() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @application.get("/health/ready")
+    async def readiness() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @application.get("/api/example")
+    async def business_request() -> dict[str, str]:
+        return {"status": "ok"}
+
+    try:
+        with TestClient(application) as client:
+            assert client.get("/health/live").status_code == 200
+            assert client.get("/health/ready").status_code == 200
+            assert client.get("/api/example").status_code == 200
+
+        assert runtime.tracer_provider is not None
+        assert runtime.tracer_provider.force_flush()
+        server_spans = [
+            span for span in span_exporter.get_finished_spans() if span.kind is SpanKind.SERVER
+        ]
+
+        assert [span.attributes["http.route"] for span in server_spans] == ["/api/example"]
+    finally:
+        runtime.shutdown()
+
+
 def test_only_one_enabled_runtime_can_own_process_instrumentation() -> None:
     first = configure_telemetry(
         TelemetryConfig(enabled=True, export_logs=False),
