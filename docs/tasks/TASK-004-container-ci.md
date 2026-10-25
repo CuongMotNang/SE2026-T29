@@ -1,6 +1,6 @@
 # TASK-004 — Container hóa và CI
 
-- Trạng thái: **Todo**
+- Trạng thái: **In Progress**
 - Người phụ trách: **Nguyễn Mai Hoàng Anh**
 - Mốc: **M3 — Container + CI**
 - Phụ thuộc: TASK-002, TASK-003
@@ -23,3 +23,10 @@
 - CI chạy tự động trên pull request.
 - Một test cố ý lỗi làm workflow fail và ngăn pipeline chuẩn tiếp tục.
 - Kiểm chứng E07 và E13 trong [Evidence](../evidence.md) đạt.
+
+## Đồng bộ trạng thái ngày 25/10/2026
+
+- Đã có Dockerfiles frontend/backend, Compose local, CI backend/frontend, E2E, build và smoke.
+- E07/E13 đã có [bằng chứng GitHub/CI](../evidence/2026-10-21-container-ci.md); frontend có
+  [kết quả local](../evidence/frontend/2026-10-25-task-003-local.md).
+- Người phụ trách xác nhận CI trên commit tích hợp mới nhất trước khi chốt `Done`.
