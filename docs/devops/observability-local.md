@@ -132,6 +132,45 @@ docker compose \
 Smoke test phải hoàn thành trong khi Collector dừng. Ghi thời gian và kết quả thật vào evidence;
 telemetry phát sinh trong khoảng outage có thể bị mất khi queue đầy.
 
+## Kiểm tra HighErrorRate — E11
+
+Đây là traffic dành riêng cho alert drill, không thay thế kịch bản k6 và báo cáo tải E15 của
+TASK-007. Bật fault có thời hạn dài hơn bài chạy, recreate riêng backend, rồi chạy trình tạo lỗi:
+
+```powershell
+$env:BOOKING_FAULT_MODE = "error"
+$env:BOOKING_FAULT_RATE = "1.0"
+$env:BOOKING_FAULT_UNTIL = (Get-Date).ToUniversalTime().AddMinutes(5).ToString("o")
+
+docker compose `
+  --env-file deploy/observability.env `
+  -f deploy/compose.yaml `
+  -f deploy/compose.observability.yaml `
+  -f deploy/compose.observability.docker-desktop.yaml `
+  up -d --no-deps --force-recreate --wait backend
+
+python -m scripts.observability_alert_traffic --rate 2 --duration 210
+```
+
+Theo dõi `HighErrorRate` qua Prometheus và Alertmanager, ghi timestamp `pending`, `firing`, thông
+báo Discord và `resolved`. Sau bài chạy, luôn tắt fault và recreate backend:
+
+```powershell
+$env:BOOKING_FAULT_MODE = "off"
+Remove-Item Env:BOOKING_FAULT_RATE -ErrorAction SilentlyContinue
+Remove-Item Env:BOOKING_FAULT_UNTIL -ErrorAction SilentlyContinue
+
+docker compose `
+  --env-file deploy/observability.env `
+  -f deploy/compose.yaml `
+  -f deploy/compose.observability.yaml `
+  -f deploy/compose.observability.docker-desktop.yaml `
+  up -d --no-deps --force-recreate --wait backend
+```
+
+Trình tạo traffic chỉ đạt khi toàn bộ response có status mong đợi và không có lỗi kết nối. Nó
+in đúng một JSON summary để lưu evidence, không in request body hoặc dữ liệu khách hàng.
+
 ## Dừng stack
 
 ```bash
