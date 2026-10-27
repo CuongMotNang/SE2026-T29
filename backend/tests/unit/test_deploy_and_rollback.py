@@ -410,3 +410,30 @@ def test_dry_run_does_not_mutate_history_file(tmp_path: Path, v1_manifest: Path)
     deployer.run()
 
     assert not deployer.history_file.exists()
+
+
+def test_apply_migrations_runs_migrate_service_from_release_image(
+    tmp_path: Path, v1_manifest: Path
+):
+    deploy_state = tmp_path / "deploy"
+    deployer = Deployer(manifest_path=v1_manifest, state_dir=deploy_state)
+    manifest = ReleaseManifest.load(v1_manifest)
+
+    with patch.object(deployer, "execute_command") as execute:
+        deployer.apply_migrations(manifest)
+
+    execute.assert_called_once_with(
+        [
+            "docker",
+            "compose",
+            "--env-file",
+            str(deploy_state.resolve() / ".env.production"),
+            "-f",
+            str(deployer.compose_file),
+            "--profile",
+            "migrate",
+            "run",
+            "--rm",
+            "migrate",
+        ]
+    )

@@ -121,8 +121,22 @@ class Deployer:
         print(f"[INFO] Checking database migration for revision: {manifest.migration_revision}")
         if self.dry_run or self.skip_container_ops:
             return
-        cmd = [sys.executable, "-m", "alembic", "upgrade", "head"]
-        self.execute_command(cmd, cwd=Path("backend"))
+        # Run Alembic from the release image itself: the demo host has neither the
+        # backend dependencies nor a published database port.
+        cmd = [
+            "docker",
+            "compose",
+            "--env-file",
+            str(self.env_file),
+            "-f",
+            str(self.compose_file),
+            "--profile",
+            "migrate",
+            "run",
+            "--rm",
+            "migrate",
+        ]
+        self.execute_command(cmd)
 
     def deploy_containers(self, manifest: ReleaseManifest) -> None:
         backend_spec = manifest.images["backend"]
