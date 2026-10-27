@@ -34,7 +34,7 @@ Docker Compose v2, Python 3 và GitHub CLI; tạo `/opt/booking/state` thuộc u
 user đó vào nhóm `docker`. Script chạy lại nhiều lần không gây hại.
 
 ```bash
-git clone https://github.com/CuongMotNang/SE2026-T29.git
+git clone https://github.com/T-ng-D-c-Lieu-Dong/SE2026-T29.git
 cd SE2026-T29
 sudo scripts/bootstrap-host.sh
 ```
@@ -58,7 +58,7 @@ label và tên cố định:
 mkdir -p ~/actions-runner && cd ~/actions-runner
 # Chạy các lệnh curl/tar copy từ trang "New self-hosted runner"
 ./config.sh \
-  --url https://github.com/CuongMotNang/SE2026-T29 \
+  --url https://github.com/T-ng-D-c-Lieu-Dong/SE2026-T29 \
   --token <REGISTRATION_TOKEN> \
   --name booking-demo \
   --labels demo \
