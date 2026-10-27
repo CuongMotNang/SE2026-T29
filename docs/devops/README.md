@@ -19,20 +19,26 @@ Tài liệu này mô tả cách hoàn thiện CI/CD, deployment, observability, 
 
 ## 2. Hiện trạng
 
+Cập nhật ngày 27/10/2026.
+
 **Đã có**
 
-- `ci.yml`: ruff lint/format, unit tests, integration tests với PostgreSQL 16, build thử image backend.
-- `release.yml`: khi push tag `v*`, chạy test gate, push image lên GHCR, sinh release manifest (digest + migration revision), tạo GitHub Release.
-- `rollback.yml` cùng `scripts/deploy.py`, `scripts/rollback.py`, `scripts/deploy_lock.py`, `scripts/smoke_test.py`.
-- `backend/Dockerfile` chạy bằng user thường, có healthcheck; `deploy/compose.yaml` và `deploy/compose.production.yaml`.
+- `ci.yml`: ruff, backend unit/integration với PostgreSQL 16, frontend lint/test/build, E2E
+  Playwright qua Compose, Compose smoke + E13, validate cấu hình observability, build image + Trivy.
+- `release.yml`: khi push tag `v*`, chạy test gate, push image backend và frontend lên GHCR, sinh
+  release manifest có cả hai digest, tạo GitHub Release.
+- `deploy.yml` và `rollback.yml` chạy trên self-hosted runner `demo`, state ở `/opt/booking/state`,
+  dùng chung concurrency `deploy-demo`; deploy cần duyệt qua environment `demo`. Xem
+  [demo-host.md](demo-host.md).
+- `deploy/compose.production.yaml` chỉ mở cổng web (Nginx); migration chạy từ image release.
+- Đường deploy → deploy → rollback đã diễn tập cục bộ:
+  [kết quả 27/10](../evidence/2026-10-27-cd-local-rehearsal.md).
 
 **Còn thiếu**
 
-1. Chưa có bước deploy thật lên máy demo. `rollback.yml` chạy trên `ubuntu-latest` nên `docker compose` không tác động tới môi trường demo, và `deploy/previous-manifest.json` mất khi runner kết thúc.
-2. Chưa có Dockerfile frontend và reverse proxy; compose production mở thẳng port 8000 của backend.
-3. Backend và cấu hình observability stack đã có trong repository; Collector, storage,
-   dashboard và alert chưa được chạy end-to-end trên máy demo.
-4. CI chưa có `concurrency`, cache, image scan, Compose smoke test; branch `main` chưa bắt buộc check xanh.
+1. Chưa có máy demo và runner đã đăng ký; environment `demo` chưa được tạo (cần quyền admin).
+2. Chưa có GitHub Release nào, nên chưa có lần deploy thật qua pipeline (E08 trên máy demo).
+3. Observability stack chưa được deploy cùng ứng dụng trên máy demo (lịch tuần 4).
 
 ## 3. Giai đoạn A — Hoàn thiện CI (TASK-004)
 

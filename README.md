@@ -1,12 +1,18 @@
 # Production Readiness Lab — Dịch vụ đặt lịch (Booking API & Platform)
 
-Dự án triển khai một dịch vụ đặt lịch tinh gọn, đóng vai trò hệ thống mẫu để trình diễn các tiêu chuẩn vận hành mức Production: **CI/CD pipeline, Container hóa, Release & Rollback tự động không downtime, Khóa triển khai đồng thời (Deployment Lock), Giám sát toàn diện (Observability: Logs, Metrics, Traces, Alerts) và Thực nghiệm diễn tập sự cố (Incident Drill)**.
+Dự án triển khai dịch vụ đặt lịch để thực hành **CI/CD, container, release và rollback, khóa
+triển khai, quan sát hệ thống và diễn tập sự cố**. Đã có UI, API, scripts và bằng chứng cục bộ;
+triển khai trên máy demo, load test E15 và drill toàn trình vẫn cần hoàn thiện. Mô hình một VM
+có thể gián đoạn khi recreate container; chưa có bằng chứng zero-downtime.
 
 ---
 
 ## 1. Kiến trúc hệ thống
 
-Toàn bộ hệ thống chạy trên nền tảng Docker Compose theo thiết kế trong [ADR-001](docs/architecture/adr/001-use-docker-compose.md):
+Kiến trúc đích dùng Docker Compose trên một Linux VM theo
+[ADR-001 đã Accepted](docs/architecture/adr/001-use-docker-compose.md). Local đã có
+web/API/DB và observability overlay; production Compose hiện mới có API/DB. Sơ đồ dưới đây
+mô tả đích triển khai, không phải kết quả xác nhận toàn bộ dịch vụ đã chạy trên máy demo:
 
 ```mermaid
 flowchart TB
@@ -24,7 +30,7 @@ flowchart TB
             Loki["Loki<br/>Lưu trữ structured logs"]
             Blackbox["Blackbox Exporter<br/>Thăm dò trạng thái /health/ready"]
             Grafana["Grafana<br/>Dashboard tương quan Traces ↔ Logs ↔ Metrics"]
-            AM["Alertmanager<br/>Định tuyến & gửi cảnh báo tới Discord"]
+            AM["Alertmanager<br/>Discord cần webhook thật"]
         end
 
         Runner["Deploy & Rollback Runner<br/>(Scripts có khóa chống chạy đồng thời)"]
@@ -33,7 +39,7 @@ flowchart TB
     subgraph CICD["GitHub Actions"]
         CI["CI Workflow<br/>Lint, Format, Test, Smoke Test, Build"]
         Release["Release Workflow<br/>Gắn Git tag, build image & tạo manifest"]
-        Rollback["Rollback Workflow<br/>Khôi phục manifest phiên bản tốt trước đó"]
+        Rollback["Rollback Workflow<br/>Cần kết nối máy demo và state bền vững"]
     end
 
     User -->|HTTP| Web
@@ -56,7 +62,7 @@ flowchart TB
 SE2026-T29/
 ├── backend/                       # Mã nguồn backend (FastAPI, SQLAlchemy, Alembic)
 │   ├── app/                       # Ứng dụng chính: API routers, Models, Services, Telemetry
-│   ├── alembic/                   # Database migrations (zero-downtime compatible)
+│   ├── alembic/                   # Database migrations; review tương thích rollback
 │   └── tests/                     # Unit tests & Integration tests
 ├── deploy/                        # Cấu hình triển khai Docker Compose
 │   ├── compose.yaml               # Cấu hình cơ sở cho development
@@ -82,13 +88,17 @@ SE2026-T29/
 
 | ID | Task | Mốc | Trạng thái | Người phụ trách | Sản phẩm chính |
 | --- | --- | --- | --- | --- | --- |
-| **TASK-001** | [Xác nhận kiến trúc](docs/tasks/TASK-001-confirm-architecture.md) | M0 | **Done** | Team | Bộ tài liệu Context, Module view, Runtime view, ADR-001 |
+| **TASK-001** | [Xác nhận kiến trúc](docs/tasks/TASK-001-confirm-architecture.md) | M0 | **Done** | Phạm Minh Cương (23001840) | Context, Module view, Runtime view, ADR-001 Accepted và review migration |
 | **TASK-002** | [Xây dựng Booking API](docs/tasks/TASK-002-booking-api.md) | M1 | **Done** | Phạm Minh Cương | FastAPI backend, PostgreSQL, transaction phòng chống double booking |
-| **TASK-003** | [Xây dựng React UI](docs/tasks/TASK-003-react-ui.md) | M2 | **Todo** | Lê Văn Cường | Giao diện đặt lịch, xem slot và quản lý lịch hẹn |
+| **TASK-003** | [Xây dựng React UI](docs/tasks/TASK-003-react-ui.md) | M2 | **Done** | Lê Văn Cường | Giao diện đặt lịch, xem slot và quản lý lịch hẹn |
 | **TASK-004** | [Container hóa và CI](docs/tasks/TASK-004-container-ci.md) | M3 | **In Progress** | Nguyễn Mai Hoàng Anh | Dockerfile tối ưu multi-stage, CI workflow kiểm tra lint & test |
 | **TASK-005** | [Release, deploy và rollback](docs/tasks/TASK-005-release-deploy.md) | M4 | **Done** | Nguyễn Việt Anh | Release manifest, deploy/rollback automation, deploy lock, smoke test |
 | **TASK-006** | [Observability và cảnh báo](docs/tasks/TASK-006-observability.md) | M5 | **In Progress** | Vũ Thành Công | OpenTelemetry runtime, Grafana dashboards, Alert rules, Fault injection |
 | **TASK-007** | [Reliability demo và evidence](docs/tasks/TASK-007-reliability-demo.md) | M6 | **In Progress** | Nguyễn Việt Anh | Kịch bản diễn tập sự cố, bằng chứng cảnh báo và khôi phục hệ thống |
+
+TASK-001 do **Phạm Minh Cương (23001840)** phụ trách. Xem
+[review kiến trúc ngày 25/10](docs/evidence/2026-10-25-architecture-review.md) và
+[bảng Tasks](docs/tasks/README.md) để theo dõi trạng thái thống nhất.
 
 ---
 
@@ -130,7 +140,7 @@ python -m ruff format --check backend
 
 ### 4.3. Chạy Kiểm thử (Tests)
 
-Toàn bộ **79 unit tests** có thể chạy cục bộ độc lập:
+Unit tests backend có thể chạy cục bộ độc lập; số lượng và kết quả ghi theo từng lần kiểm chứng:
 
 ```bash
 pytest backend/tests/unit

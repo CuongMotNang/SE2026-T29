@@ -109,6 +109,8 @@ class Deployer:
             f"BOOKING_RELEASE={manifest.release}\n"
             f"BOOKING_COMMIT_SHA={manifest.commit_sha}\n"
         )
+        if manifest.frontend_image:
+            env_content += f"FRONTEND_IMAGE_REF={manifest.frontend_image.pinned_reference}\n"
         if self.dry_run:
             print(f"[DRY-RUN] Would write .env.production:\n{env_content}")
             return
@@ -121,15 +123,33 @@ class Deployer:
         print(f"[INFO] Checking database migration for revision: {manifest.migration_revision}")
         if self.dry_run or self.skip_container_ops:
             return
-        cmd = [sys.executable, "-m", "alembic", "upgrade", "head"]
-        self.execute_command(cmd, cwd=Path("backend"))
+        # Run Alembic from the release image itself: the demo host has neither the
+        # backend dependencies nor a published database port.
+        cmd = [
+            "docker",
+            "compose",
+            "--env-file",
+            str(self.env_file),
+            "-f",
+            str(self.compose_file),
+            "--profile",
+            "migrate",
+            "run",
+            "--rm",
+            "migrate",
+        ]
+        self.execute_command(cmd)
 
     def deploy_containers(self, manifest: ReleaseManifest) -> None:
-        backend_spec = manifest.images["backend"]
-        print(f"[INFO] Pulling immutable image by digest: {backend_spec.pinned_reference}")
+        pinned_images = [manifest.images["backend"]]
+        if manifest.frontend_image:
+            pinned_images.append(manifest.frontend_image)
+        for spec in pinned_images:
+            print(f"[INFO] Pulling immutable image by digest: {spec.pinned_reference}")
         if not self.skip_container_ops:
-            # 1. Pull pinned digest
-            self.execute_command(["docker", "pull", backend_spec.pinned_reference])
+            # 1. Pull pinned digests
+            for spec in pinned_images:
+                self.execute_command(["docker", "pull", spec.pinned_reference])
 
             # 2. Recreate containers using docker compose builder
             compose_cmd = build_compose_up_command(self.env_file, self.compose_file)

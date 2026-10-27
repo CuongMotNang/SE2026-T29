@@ -36,6 +36,7 @@ from app.telemetry.config import TelemetryConfig
 
 INSTRUMENTATION_SCOPE = "booking-api"
 REDACTED_URL = "[redacted]"
+FASTAPI_EXCLUDED_URLS = r"/health/(?:live|ready)$"
 
 
 @dataclass(slots=True)
@@ -364,6 +365,7 @@ def _configure_enabled_telemetry(
                 application,
                 tracer_provider=tracer_provider,
                 meter_provider=meter_provider,
+                excluded_urls=FASTAPI_EXCLUDED_URLS,
                 server_request_hook=_sanitize_server_span,
             )
         if engine is not None and sqlalchemy_instrumentor is not None:
