@@ -1,0 +1,70 @@
+name: Deploy to Demo Host
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to deploy (for example v0.2.0)"
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  # Same project name in deploy and rollback so Compose manages the same containers.
+  COMPOSE_PROJECT_NAME: booking
+  BOOKING_STATE_DIR: ${{ vars.BOOKING_STATE_DIR || '/opt/booking/state' }}
+  DEPLOY_BASE_URL: http://localhost:8000
+
+jobs:
+  deploy:
+    name: Deploy release to demo host
+    runs-on: [self-hosted, demo]
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Validate release tag
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid release tag: $RELEASE_TAG"
+            exit 1
+          fi
+
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Prepare Python environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet "psutil>=5.9"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Download release manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/manifest"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$RELEASE_TAG.json" \
+            --dir "$RUNNER_TEMP/manifest" \
+            --clobber
+          cat "$RUNNER_TEMP/manifest/$RELEASE_TAG.json"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Deploy release
+        run: |
+          python -m scripts.deploy \
+            --manifest "$RUNNER_TEMP/manifest/$RELEASE_TAG.json" \
+            --state-dir "$BOOKING_STATE_DIR" \
+            --base-url "$DEPLOY_BASE_URL" \
+            --timeout 120
