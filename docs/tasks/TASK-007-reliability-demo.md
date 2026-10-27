@@ -1,7 +1,7 @@
 # TASK-007 — Reliability demo và evidence
 
-- Trạng thái: **Todo**
-- Người phụ trách: **Chưa phân công**
+- Trạng thái: **In Progress**
+- Người phụ trách: **Nguyễn Việt Anh (23001827)**
 - Mốc: **M6 — Reliability demo**
 - Phụ thuộc: TASK-005, TASK-006
 

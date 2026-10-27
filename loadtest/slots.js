@@ -49,6 +49,9 @@ export function queryAvailableSlots(baseUrl = BASE_URL, dateStr = getTargetDate(
       'User-Agent': 'k6-loadtest/1.0',
     },
     tags: { name: 'GET /api/slots' },
+    timeout: '10s',
+    redirects: 0,
+    responseCallback: http.expectedStatuses(200),
   };
 
   const startTime = Date.now();

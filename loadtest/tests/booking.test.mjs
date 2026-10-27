@@ -1,0 +1,111 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import vm from 'node:vm';
+
+const id = '11111111-1111-4111-8111-111111111111';
+const slot = { starts_at: '2099-11-02T10:00:00+07:00' };
+const response = (status, body) => ({
+  status, body: JSON.stringify(body),
+  json() { return JSON.parse(this.body); },
+});
+
+async function loadBooking(responses, env = {}) {
+  const calls = [];
+  const checks = [];
+  const metrics = {};
+  const context = vm.createContext({ __ENV: env, __VU: 1, __ITER: 0, console });
+  class Metric {
+    constructor(name) { this.name = name; metrics[name] = []; }
+    add(value) { metrics[this.name].push(value); }
+  }
+  const request = (method, url, body, params) => {
+    calls.push({ method, url, body, params });
+    assert.ok(responses.length, `Unexpected ${method} ${url}`);
+    return responses.shift();
+  };
+  const http = {
+    get: (url, params) => request('GET', url, null, params),
+    post: (url, body, params) => request('POST', url, body, params),
+    del: (url, body, params) => request('DELETE', url, body, params),
+    expectedStatuses: (...statuses) => statuses,
+  };
+  const definitions = {
+    'k6/http': { default: http },
+    k6: {
+      check: (value, predicates) => {
+        const results = Object.entries(predicates).map(([name, fn]) => {
+          const ok = Boolean(fn(value));
+          checks.push({ name, ok });
+          return ok;
+        });
+        return results.every(Boolean);
+      },
+      sleep: () => assert.fail('Arrival-rate scenarios must not sleep'),
+    },
+    'k6/metrics': { Counter: Metric, Rate: Metric, Trend: Metric },
+  };
+  const modules = new Map();
+  for (const [name, exports] of Object.entries(definitions)) {
+    modules.set(name, new vm.SyntheticModule(Object.keys(exports), function () {
+      for (const [key, value] of Object.entries(exports)) this.setExport(key, value);
+    }, { context }));
+  }
+  for (const name of ['slots.js', 'booking.js']) {
+    modules.set(`./${name}`, new vm.SourceTextModule(
+      await readFile(new URL(`../${name}`, import.meta.url), 'utf8'), { context }
+    ));
+  }
+  const module = modules.get('./booking.js');
+  await module.link((name) => {
+    assert.ok(modules.has(name), `Unexpected import: ${name}`);
+    return modules.get(name);
+  });
+  await module.evaluate();
+  return { script: module.namespace, calls, checks, metrics };
+}
+
+test('queries slots, creates and cancels only its own booking', async () => {
+  const run = await loadBooking([
+    response(200, [slot]), response(201, { id }), response(204, null),
+  ], { BASE_URL: 'http://demo:8000/', TARGET_DATE: '2099-11-02' });
+  run.script.createAndCancelBooking();
+  assert.deepEqual(run.calls.map((call) => call.method), ['GET', 'POST', 'DELETE']);
+  assert.equal(run.calls[0].url, 'http://demo:8000/api/slots?date=2099-11-02');
+  assert.deepEqual(JSON.parse(run.calls[1].body), { customer_name: 'k6-1-0', ...slot });
+  assert.equal(run.calls[2].url, `http://demo:8000/api/appointments/${id}`);
+  assert.equal(run.calls[2].params.tags.name, 'DELETE /api/appointments/:id');
+  assert.ok(run.checks.every((check) => check.ok));
+  assert.deepEqual(run.metrics.bookings_completed, [1]);
+});
+
+test('409 is an expected conflict and never triggers cancellation', async () => {
+  const run = await loadBooking([response(200, [slot]), response(409, { detail: 'Booked' })]);
+  run.script.default();
+  assert.equal(run.calls.length, 2);
+  assert.ok(run.calls[1].params.responseCallback.includes(409));
+  assert.deepEqual(run.metrics.booking_conflicts, [1]);
+  assert.deepEqual(run.metrics.bookings_completed, []);
+});
+
+for (const [name, responses] of [
+  ['empty slots', [response(200, [])]],
+  ['invalid slots JSON', [{ status: 200, body: 'invalid' }]],
+  ['failed slots request', [response(500, {})]],
+  ['invalid slot shape', [response(200, [{ id }])]],
+  ['failed create', [response(200, [slot]), response(500, {})]],
+  ['missing booking id', [response(200, [slot]), response(201, {})]],
+  ['unsafe booking id', [response(200, [slot]), response(201, { id: '../existing' })]],
+  ['invalid create JSON', [response(200, [slot]), { status: 201, json() { throw Error(); } }]],
+  ['failed cancellation', [response(200, [slot]), response(201, { id }), response(500, {})]],
+]) {
+  test(`${name} records failed checks without claiming a completed booking`, async () => {
+    const run = await loadBooking(responses);
+    run.script.createAndCancelBooking();
+    assert.ok(run.checks.some((check) => !check.ok));
+    assert.deepEqual(run.metrics.bookings_completed, []);
+    if (name !== 'failed cancellation') {
+      assert.ok(run.calls.every((call) => call.method !== 'DELETE'));
+    }
+  });
+}
