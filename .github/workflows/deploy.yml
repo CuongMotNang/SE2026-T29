@@ -15,6 +15,12 @@ permissions:
   contents: read
   packages: read
 
+concurrency:
+  # Shared with rollback.yml so the demo host never runs deploy and rollback at once.
+  # Queue instead of cancelling: an interrupted deploy leaves the stack half-updated.
+  group: deploy-demo
+  cancel-in-progress: false
+
 env:
   # Same project name in deploy and rollback so Compose manages the same containers.
   COMPOSE_PROJECT_NAME: booking
