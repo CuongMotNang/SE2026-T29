@@ -6,6 +6,10 @@ on:
       tag:
         description: "Release tag to deploy (for example v0.2.0)"
         required: true
+  # A successful tag release deploys automatically (still gated by the job below).
+  workflow_run:
+    workflows: ["Release and Publish Manifest"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -20,9 +24,11 @@ env:
 jobs:
   deploy:
     name: Deploy release to demo host
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, demo]
     env:
-      RELEASE_TAG: ${{ inputs.tag }}
+      # For workflow_run, head_branch holds the tag that triggered the release.
+      RELEASE_TAG: ${{ inputs.tag || github.event.workflow_run.head_branch }}
     steps:
       - name: Validate release tag
         run: |
