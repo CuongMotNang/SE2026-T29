@@ -26,7 +26,8 @@ env:
   # Must match deploy.yml so Compose recreates the same containers.
   COMPOSE_PROJECT_NAME: booking
   BOOKING_STATE_DIR: ${{ vars.BOOKING_STATE_DIR || '/opt/booking/state' }}
-  DEPLOY_BASE_URL: http://localhost:8000
+  # Smoke tests go through the web proxy, the only port the demo host publishes.
+  DEPLOY_BASE_URL: http://localhost
 
 defaults:
   run:

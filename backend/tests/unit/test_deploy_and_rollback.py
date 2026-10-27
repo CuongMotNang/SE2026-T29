@@ -437,3 +437,72 @@ def test_apply_migrations_runs_migrate_service_from_release_image(
             "migrate",
         ]
     )
+
+
+DIGEST_WEB = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+
+
+@pytest.fixture
+def full_stack_manifest(tmp_path: Path) -> Path:
+    manifest = ReleaseManifest(
+        release="v0.3.0",
+        commit_sha="3333333333333333333333333333333333333333",
+        migration_revision="20261007_0001",
+        images={
+            "backend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-backend",
+                tag="v0.3.0",
+                digest=DIGEST_V2,
+            ),
+            "frontend": ImageSpec(
+                repository="ghcr.io/cuongmotnang/booking-frontend",
+                tag="v0.3.0",
+                digest=DIGEST_WEB,
+            ),
+        },
+    )
+    p = tmp_path / "v0.3.0.json"
+    manifest.save(p)
+    return p
+
+
+def test_env_file_pins_frontend_image_when_manifest_has_one(
+    tmp_path: Path, full_stack_manifest: Path
+):
+    deploy_state = tmp_path / "deploy"
+    manifest = ReleaseManifest.load(full_stack_manifest)
+
+    Deployer(manifest_path=full_stack_manifest, state_dir=deploy_state).prepare_environment_file(
+        manifest
+    )
+    deploy_env = (deploy_state / ".env.production").read_text(encoding="utf-8")
+    Rollbacker(
+        target_manifest=full_stack_manifest, state_dir=deploy_state
+    ).prepare_environment_file(manifest)
+    rollback_env = (deploy_state / ".env.production").read_text(encoding="utf-8")
+
+    expected = f"FRONTEND_IMAGE_REF=ghcr.io/cuongmotnang/booking-frontend@{DIGEST_WEB}"
+    assert expected in deploy_env
+    assert expected in rollback_env
+
+
+def test_env_file_omits_frontend_image_for_backend_only_manifest(tmp_path: Path, v1_manifest: Path):
+    deploy_state = tmp_path / "deploy"
+    Deployer(manifest_path=v1_manifest, state_dir=deploy_state).prepare_environment_file(
+        ReleaseManifest.load(v1_manifest)
+    )
+
+    assert "FRONTEND_IMAGE_REF" not in (deploy_state / ".env.production").read_text("utf-8")
+
+
+def test_deploy_pulls_every_pinned_image(tmp_path: Path, full_stack_manifest: Path):
+    deployer = Deployer(manifest_path=full_stack_manifest, state_dir=tmp_path / "deploy")
+
+    with patch.object(deployer, "execute_command") as execute:
+        deployer.deploy_containers(ReleaseManifest.load(full_stack_manifest))
+
+    pulled = [c.args[0][2] for c in execute.call_args_list if c.args[0][:2] == ["docker", "pull"]]
+    assert pulled == [
+        f"ghcr.io/cuongmotnang/booking-backend@{DIGEST_V2}",
+        f"ghcr.io/cuongmotnang/booking-frontend@{DIGEST_WEB}",
+    ]
