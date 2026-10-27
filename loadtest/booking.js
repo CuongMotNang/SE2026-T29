@@ -9,15 +9,37 @@ import {
   getTargetDate,
 } from './slots.js';
 
-/**
- * Main k6 load test script for the Booking system.
- * Reference: docs/devops/README.md (E15 load test requirement)
- */
+function positiveInteger(name, fallback) {
+  const value = Number(__ENV[name] || fallback);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return value;
+}
+
+const TARGET_RPS = positiveInteger('TARGET_RPS', 10);
+const DURATION = __ENV.DURATION || '10m';
+const PRE_ALLOCATED_VUS = positiveInteger('PRE_ALLOCATED_VUS', 10);
+const MAX_VUS = positiveInteger('MAX_VUS', 50);
+if (MAX_VUS < PRE_ALLOCATED_VUS) throw new Error('MAX_VUS must be >= PRE_ALLOCATED_VUS');
+
+const arrivalProfile = {
+  executor: 'constant-arrival-rate',
+  timeUnit: '5s',
+  duration: DURATION,
+  preAllocatedVUs: PRE_ALLOCATED_VUS,
+  maxVUs: MAX_VUS,
+  gracefulStop: '45s',
+};
+
+// At 10 RPS: 4 reads/s + 2 booking flows/s * 3 HTTP requests = 10 HTTP requests/s.
+// A failed/empty query or conflict skips writes; inspect actual http_reqs for E15.
 export const options = {
-  ...defaultOptions,
-  thresholds: {
-    ...defaultOptions.thresholds,
+  scenarios: {
+    slots: { ...arrivalProfile, exec: 'listSlots', rate: TARGET_RPS * 2 },
+    booking: { ...arrivalProfile, exec: 'createAndCancelBooking', rate: TARGET_RPS },
   },
+  thresholds: { ...defaultOptions.thresholds },
 };
 
 export { slotsDuration, slotsSuccessRate };

@@ -88,6 +88,45 @@ test('409 is an expected conflict and never triggers cancellation', async () => 
   assert.deepEqual(run.metrics.bookings_completed, []);
 });
 
+test('default arrival profiles target 10 HTTP requests/s for 10 minutes', async () => {
+  const { script } = await loadBooking([]);
+  const { slots, booking } = script.options.scenarios;
+  assert.equal(slots.executor, 'constant-arrival-rate');
+  assert.equal(booking.executor, 'constant-arrival-rate');
+  assert.equal(slots.exec, 'listSlots');
+  assert.equal(booking.exec, 'createAndCancelBooking');
+  assert.equal(slots.timeUnit, '5s');
+  assert.equal(booking.timeUnit, '5s');
+  assert.equal((slots.rate + booking.rate * 3) / 5, 10);
+  assert.equal(slots.duration, '10m');
+  assert.equal(booking.duration, '10m');
+  assert.equal(booking.gracefulStop, '45s');
+  assert.equal(booking.preAllocatedVUs, 10);
+  assert.equal(booking.maxVUs, 50);
+  assert.equal(script.options.vus, undefined);
+  assert.equal(script.options.duration, undefined);
+});
+
+test('arrival rate, duration and VU allocation are configurable', async () => {
+  const { script } = await loadBooking([], {
+    TARGET_RPS: '5', DURATION: '5s', PRE_ALLOCATED_VUS: '2', MAX_VUS: '4',
+  });
+  const { slots, booking } = script.options.scenarios;
+  assert.equal((slots.rate + booking.rate * 3) / 5, 5);
+  assert.equal(booking.duration, '5s');
+  assert.equal(booking.preAllocatedVUs, 2);
+  assert.equal(booking.maxVUs, 4);
+});
+
+for (const env of [
+  { TARGET_RPS: '0' }, { TARGET_RPS: '-1' }, { TARGET_RPS: '1.5' },
+  { TARGET_RPS: 'invalid' }, { PRE_ALLOCATED_VUS: '0' }, { MAX_VUS: '1' },
+]) {
+  test(`rejects invalid arrival configuration ${JSON.stringify(env)}`, async () => {
+    await assert.rejects(loadBooking([], env), /positive integer|MAX_VUS must be/);
+  });
+}
+
 for (const [name, responses] of [
   ['empty slots', [response(200, [])]],
   ['invalid slots JSON', [{ status: 200, body: 'invalid' }]],
