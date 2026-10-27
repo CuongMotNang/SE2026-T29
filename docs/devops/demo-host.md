@@ -76,6 +76,40 @@ Registration token hết hạn sau một giờ; không commit hoặc dán token 
 - Trên VM: `sudo ./svc.sh status` báo `active (running)`.
 - Log runner nằm ở `~/actions-runner/_diag/`.
 
+## 5. GitHub Environment `demo`
+
+`deploy.yml` chạy trong environment `demo`, nên mọi lần deploy (kể cả lần tự kích hoạt sau release)
+dừng ở trạng thái **Waiting** cho tới khi reviewer duyệt. Người có quyền admin tạo environment một
+lần trong **Settings → Environments → New environment**:
+
+| Cài đặt | Giá trị |
+| --- | --- |
+| Name | `demo` |
+| Required reviewers | Ít nhất một thành viên khác người push tag, ví dụ người phụ trách TASK-005 |
+| Prevent self-review | Bật |
+| Deployment branches and tags | **Selected branches and tags**, thêm rule kiểu tag `v*` và branch `main` |
+| Environment variable (tuỳ chọn) | `BOOKING_STATE_DIR` nếu không dùng `/opt/booking/state` |
+
+Rule `v*` cho phép job chạy từ tag release; rule `main` cần cho lần deploy tự động, vì workflow
+`workflow_run` chạy trên nhánh mặc định.
+
+`rollback.yml` cố ý không dùng environment này: rollback luôn do người bấm `workflow_dispatch`
+trong lúc sự cố, và bước chờ duyệt sẽ ăn vào mục tiêu khôi phục trong 5 phút.
+
+## 6. Deploy và rollback qua pipeline
+
+| Thao tác | Cách chạy | Ghi chú |
+| --- | --- | --- |
+| Deploy tự động | Push tag `vX.Y.Z` → `release.yml` thành công → `deploy.yml` chờ duyệt | Chỉ kích hoạt khi `deploy.yml` đã nằm trên `main` |
+| Deploy thủ công | **Actions → Deploy to Demo Host → Run workflow**, nhập tag | Tag phải có GitHub Release kèm `<tag>.json` |
+| Rollback | **Actions → Rollback Deployment → Run workflow**, ghi lý do | Để trống `target_manifest` để về `previous-manifest.json` |
+
+Hai workflow dùng chung concurrency group `deploy-demo`: một job đang chạy thì job sau xếp hàng.
+GitHub chỉ giữ một job chờ trong mỗi group, nên nếu xếp liền hai lần, lần chờ cũ bị huỷ.
+
+Mỗi lần chạy upload artifact `deploy-<tag>-<attempt>` hoặc `rollback-<run>-<attempt>` gồm log,
+`current-manifest.json`, `previous-manifest.json`, `history.json` và `docker compose ps`.
+
 ## Lưu ý bảo mật
 
 - Repository là public. Không workflow nào được chạy trên self-hosted runner với trigger
