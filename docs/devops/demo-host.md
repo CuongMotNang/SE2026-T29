@@ -114,6 +114,14 @@ Mỗi lần chạy upload artifact `deploy-<tag>-<attempt>` hoặc `rollback-<ru
 
 - Repository là public. Không workflow nào được chạy trên self-hosted runner với trigger
   `pull_request`, vì code từ fork sẽ chạy trên máy demo. CI thường vẫn dùng `ubuntu-latest`; chỉ
-  `deploy.yml` và `rollback.yml` dùng `runs-on: [self-hosted, demo]`.
+  `deploy.yml`, `rollback.yml` và workflow `loadtest.yml` thủ công dùng `runs-on: [self-hosted, demo]`.
 - Giữ cài đặt **Settings → Actions → General → Fork pull request workflows** ở mức yêu cầu duyệt.
 - Không mở port SSH của VM ra Internet; truy cập từ xa khi demo dùng Tailscale.
+
+## 7. Phối hợp load test và release drill
+
+Workflow **Load Test on Demo Host** chỉ nhận `workflow_dispatch` trên `main`, gọi web
+`http://localhost` port 80 và upload artifact ngay cả khi thresholds thất bại.
+Fault config được đưa vào release manifest cho tag `*-drill`, rồi deploy/rollback ghi
+vào env tại state dir. Chi tiết deadline, smoke và evidence:
+[Release drill](../releases/drill-release.md).

@@ -111,6 +111,12 @@ class Deployer:
         )
         if manifest.frontend_image:
             env_content += f"FRONTEND_IMAGE_REF={manifest.frontend_image.pinned_reference}\n"
+        # Record the activation expiry on the effective manifest saved in state.
+        # Approval waiting time does not consume the drill's bounded lifetime.
+        manifest.fault = manifest.fault.activate()
+        env_content += "".join(
+            f"{key}={value}\n" for key, value in manifest.fault.to_environment().items()
+        )
         if self.dry_run:
             print(f"[DRY-RUN] Would write .env.production:\n{env_content}")
             return
@@ -169,7 +175,11 @@ class Deployer:
             expected_release=manifest.release,
             expected_commit_sha=manifest.commit_sha,
         )
-        results = runner.run_all()
+        if manifest.fault.is_active():
+            print("[DRILL] Intentional fault active; checking readiness and version only.")
+            results = runner.run_health_checks()
+        else:
+            results = runner.run_all()
         for res in results:
             status = "PASS" if res.success else "FAIL"
             print(f"[{status}] ({res.duration_seconds:.2f}s) {res.step}: {res.message}")

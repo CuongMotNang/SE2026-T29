@@ -16,6 +16,8 @@ Manifest chứa đầy đủ thông tin truy vết của một release:
 - `images`: Bản đồ định danh Docker images:
   - `backend`: Image dịch vụ API backend (**bắt buộc**).
   - `frontend`: Image giao diện người dùng web (**tùy chọn**, hỗ trợ từ `v0.2.0`).
+- `fault`: Cấu hình fault tùy chọn, mặc định `off`; gồm mode, rate, latency và deadline
+  hoặc thời lượng có hạn. Xem [Release drill](drill-release.md) cho luồng tag → manifest → env.
 
 ### 1.2 Quy tắc Image Digest (Bất biến)
 - **Bắt buộc dùng digest**: Mọi image trong manifest bắt buộc phải có `digest` định dạng `sha256:<64-hex>`.

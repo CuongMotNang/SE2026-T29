@@ -37,3 +37,14 @@ Chạy thử tải và incident drill để chứng minh khả năng phát hiệ
   22 kiểm thử JavaScript, 85 unit tests, k6 inspect và smoke với PostgreSQL/API thật.
 - **E15 vẫn chưa kiểm chứng**: smoke 15 giây chỉ xác nhận script hoạt động;
   phép đo 10 phút trên môi trường tham chiếu và incident drill còn lại trong TASK-007.
+
+## Phối hợp sau PR #26
+
+- C085: có workflow k6 chỉ chạy thủ công trên `[self-hosted, demo]`, branch `main`,
+  gọi web port 80; luôn lưu artifact summary/log/version/cấu hình máy/manifest/history.
+- C088–C089: manifest mang fault config, deploy ghi deadline kích hoạt và rollback về
+  release thường tắt fault rõ ràng; có regression tests cho phục hồi cấu hình.
+- Tag `*-drill` lấy cấu hình tại `deploy/drill-fault.json`; migration tiếp tục dùng
+  image release qua Compose profile `migrate`. Rollback không chạy migration.
+- [Hướng dẫn chạy và evidence](../releases/drill-release.md).
+- Chưa chạy workflow mới trên máy demo; chưa tạo/push tag drill hoặc duyệt deployment.

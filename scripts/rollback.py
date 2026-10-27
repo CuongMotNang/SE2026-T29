@@ -88,6 +88,11 @@ class Rollbacker:
         )
         if manifest.frontend_image:
             env_content += f"FRONTEND_IMAGE_REF={manifest.frontend_image.pinned_reference}\n"
+        # Legacy/healthy manifests explicitly write mode=off, clearing any drill.
+        # Restore the recorded expiry; never start a new fault lifetime on rollback.
+        env_content += "".join(
+            f"{key}={value}\n" for key, value in manifest.fault.to_environment().items()
+        )
         if self.dry_run:
             print(f"[DRY-RUN] Would write .env.production:\n{env_content}")
             return

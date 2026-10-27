@@ -178,3 +178,16 @@ Node tests chạy các module thật với HTTP/metrics giả lập để kiểm
 
 Tham chiếu: [constant-arrival-rate](https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/constant-arrival-rate/),
 [custom summary](https://grafana.com/docs/k6/latest/results-output/end-of-test/custom-summary/).
+
+## 8. Chạy trên máy demo qua GitHub Actions (C085)
+
+Chọn **Actions → Load Test on Demo Host → Run workflow**, branch `main`.
+Mặc định 10 request/giây trong 10 phút; có lựa chọn 30 giây để kiểm tra nhanh.
+Điền dataset và dùng ngày thử riêng. Workflow chạy thủ công trên `[self-hosted, demo]`,
+qua web `http://localhost` port 80; không gọi port 8000 trên host.
+Artifact luôn có summary, log, version, thông tin máy và manifest/history hiện tại,
+kể cả khi k6 trả lỗi do vượt ngưỡng.
+
+Workflow giữ runner trong suốt phép đo. Nếu chỉ có một runner, chạy tải từ terminal/máy
+khác khi diễn tập cần deploy/rollback đồng thời. Xem
+[release drill và evidence](../docs/releases/drill-release.md).
