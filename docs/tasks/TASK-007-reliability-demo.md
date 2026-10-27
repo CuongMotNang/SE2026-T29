@@ -25,3 +25,15 @@ Chạy thử tải và incident drill để chứng minh khả năng phát hiệ
 - Rollback hoàn tất trong mục tiêu 5 phút, smoke test pass và dữ liệu còn nguyên.
 - Incident report và toàn bộ link evidence cần thiết đã được lưu.
 - Không mô tả hệ thống là “production-ready” nếu chưa đủ bằng chứng.
+
+## Tiến độ tuần 2 — thứ Hai và thứ Ba (C081–C084)
+
+- Hoàn thành luồng xem slot → đặt → hủy trong `loadtest/booking.js`; tách riêng `409`.
+- Có profile mặc định 10 HTTP request/giây trong 10 phút, ngưỡng p95 < 500 ms
+  cho từng route, lỗi < 1%, kiểm tra dropped iterations và các checks nghiệp vụ.
+- Tự xuất summary JSON kèm cấu hình tải, release/SHA và điều kiện đo;
+  hướng dẫn chạy tại [loadtest/README.md](../../loadtest/README.md).
+- [Kiểm tra script ngày 27/10/2026](../evidence/loadtest/2026-10-27-week2-smoke.md):
+  22 kiểm thử JavaScript, 85 unit tests, k6 inspect và smoke với PostgreSQL/API thật.
+- **E15 vẫn chưa kiểm chứng**: smoke 15 giây chỉ xác nhận script hoạt động;
+  phép đo 10 phút trên môi trường tham chiếu và incident drill còn lại trong TASK-007.

@@ -167,3 +167,43 @@ test('E15 thresholds cover latency per route, errors, checks and insufficient lo
   assert.deepEqual(thresholds.bookings_completed, ['count>0']);
   assert.deepEqual(thresholds.dropped_iterations, ['count==0']);
 });
+
+test('summary preserves metrics and threshold results with execution context', async () => {
+  const { script } = await loadBooking([], {
+    BASE_URL: 'http://demo:8000', TARGET_DATE: '2099-11-02',
+    BOOKING_RELEASE: 'v0.2.0', BOOKING_COMMIT_SHA: 'abc1234',
+    TEST_ENVIRONMENT: 'demo VM 2 CPU 4 GB', DATASET: '10 existing bookings',
+  });
+  const data = {
+    state: { testRunDurationMs: 600000 },
+    metrics: {
+      http_reqs: { values: { count: 6000, rate: 10 } },
+      http_req_duration: { values: { 'p(95)': 550 }, thresholds: { 'p(95)<500': { ok: false } } },
+    },
+  };
+  const output = script.handleSummary(data);
+  const summary = JSON.parse(output['reports/loadtest-booking-summary.json']);
+  assert.deepEqual(summary.metrics, data.metrics);
+  assert.deepEqual(summary.state, data.state);
+  assert.equal(summary.metadata.target_rps, 10);
+  assert.equal(summary.metadata.configured_duration, '10m');
+  assert.equal(summary.metadata.scenarios.slots.rate, 20);
+  assert.equal(summary.metadata.scenarios.booking.rate, 10);
+  assert.equal(summary.metadata.scenarios.booking.executor, 'constant-arrival-rate');
+  assert.equal(summary.metadata.target_date, '2099-11-02');
+  assert.equal(summary.metadata.release, 'v0.2.0');
+  assert.equal(summary.metadata.commit_sha, 'abc1234');
+  assert.equal(summary.metadata.environment, 'demo VM 2 CPU 4 GB');
+  assert.equal(summary.metadata.dataset, '10 existing bookings');
+  assert.ok(Number.isFinite(Date.parse(summary.metadata.generated_at)));
+  assert.match(output.stdout, /http_req_duration: p\(95\)<500/);
+  assert.match(output.stdout, /HTTP requests: 6000/);
+  assert.equal(data.metadata, undefined);
+});
+
+test('summary supports a custom file path and absent metrics', async () => {
+  const { script } = await loadBooking([], { SUMMARY_PATH: 'reports/custom.json' });
+  const output = script.handleSummary({ metrics: {} });
+  assert.ok(output['reports/custom.json'].endsWith('\n'));
+  assert.match(output.stdout, /p95: n\/a/);
+});

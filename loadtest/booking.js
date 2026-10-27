@@ -35,11 +35,15 @@ const arrivalProfile = {
 
 // At 10 RPS: 4 reads/s + 2 booking flows/s * 3 HTTP requests = 10 HTTP requests/s.
 // A failed/empty query or conflict skips writes; inspect actual http_reqs for E15.
-export const options = {
-  scenarios: {
+function makeScenarios() {
+  return {
     slots: { ...arrivalProfile, exec: 'listSlots', rate: TARGET_RPS * 2 },
     booking: { ...arrivalProfile, exec: 'createAndCancelBooking', rate: TARGET_RPS },
-  },
+  };
+}
+
+export const options = {
+  scenarios: makeScenarios(),
   thresholds: {
     ...defaultOptions.thresholds,
     'http_req_duration{name:GET /api/slots}': ['p(95)<500'],
@@ -59,6 +63,7 @@ export const bookingsCompleted = new Counter('bookings_completed');
 
 const BASE_URL = (__ENV.BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
 const REQUEST_TIMEOUT = '10s';
+const TARGET_DATE = getTargetDate();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function listSlots() {
@@ -68,7 +73,7 @@ export function listSlots() {
 export function createAndCancelBooking() {
   bookingsCompleted.add(0);
   bookingConflicts.add(0);
-  const { response, success } = queryAvailableSlots(BASE_URL, getTargetDate());
+  const { response, success } = queryAvailableSlots(BASE_URL, TARGET_DATE);
   if (!success) return;
 
   const slots = response.json();
@@ -116,3 +121,36 @@ export function createAndCancelBooking() {
 }
 
 export default createAndCancelBooking;
+
+export function handleSummary(data) {
+  const path = __ENV.SUMMARY_PATH || 'reports/loadtest-booking-summary.json';
+  const report = {
+    ...data,
+    metadata: {
+      generated_at: new Date().toISOString(),
+      base_url: BASE_URL,
+      target_date: TARGET_DATE,
+      target_rps: TARGET_RPS,
+      configured_duration: DURATION,
+      scenarios: makeScenarios(),
+      release: __ENV.BOOKING_RELEASE || 'unspecified',
+      commit_sha: __ENV.BOOKING_COMMIT_SHA || 'unspecified',
+      environment: __ENV.TEST_ENVIRONMENT || 'unspecified',
+      dataset: __ENV.DATASET || 'unspecified',
+    },
+  };
+  const metrics = data.metrics || {};
+  const count = metrics.http_reqs?.values.count ?? 0;
+  const rate = metrics.http_reqs?.values.rate ?? 0;
+  const p95 = metrics.http_req_duration?.values['p(95)'] ?? 'n/a';
+  const failedThresholds = Object.entries(metrics).flatMap(([name, metric]) =>
+    Object.entries(metric.thresholds || {})
+      .filter(([, result]) => !result.ok)
+      .map(([threshold]) => `${name}: ${threshold}`)
+  );
+  return {
+    [path]: JSON.stringify(report, null, 2) + '\n',
+    stdout: `HTTP requests: ${count}, rate: ${rate}/s, p95: ${p95} ms\n` +
+      `Failed thresholds: ${failedThresholds.join('; ') || 'none'}\nSummary: ${path}\n`,
+  };
+}
