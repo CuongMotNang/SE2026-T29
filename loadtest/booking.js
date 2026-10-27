@@ -7,6 +7,7 @@ import {
   slotsDuration,
   slotsSuccessRate,
   getTargetDate,
+  httpServerErrors,
 } from './slots.js';
 
 function positiveInteger(name, fallback) {
@@ -39,7 +40,16 @@ export const options = {
     slots: { ...arrivalProfile, exec: 'listSlots', rate: TARGET_RPS * 2 },
     booking: { ...arrivalProfile, exec: 'createAndCancelBooking', rate: TARGET_RPS },
   },
-  thresholds: { ...defaultOptions.thresholds },
+  thresholds: {
+    ...defaultOptions.thresholds,
+    'http_req_duration{name:GET /api/slots}': ['p(95)<500'],
+    'http_req_duration{name:POST /api/appointments}': ['p(95)<500'],
+    'http_req_duration{name:DELETE /api/appointments/:id}': ['p(95)<500'],
+    http_server_errors: ['rate<0.01'],
+    checks: ['rate>0.99'],
+    bookings_completed: ['count>0'],
+    dropped_iterations: ['count==0'],
+  },
 };
 
 export { slotsDuration, slotsSuccessRate };
@@ -56,6 +66,8 @@ export function listSlots() {
 }
 
 export function createAndCancelBooking() {
+  bookingsCompleted.add(0);
+  bookingConflicts.add(0);
   const { response, success } = queryAvailableSlots(BASE_URL, getTargetDate());
   if (!success) return;
 
@@ -73,6 +85,7 @@ export function createAndCancelBooking() {
       responseCallback: http.expectedStatuses(201, 409),
     }
   );
+  httpServerErrors.add(created.status >= 500 && created.status < 600);
   check(created, { 'booking returns 201 or conflict 409': (res) => [201, 409].includes(res.status) });
   if (created.status === 409) {
     bookingConflicts.add(1);
@@ -96,6 +109,7 @@ export function createAndCancelBooking() {
     redirects: 0,
     responseCallback: http.expectedStatuses(204),
   });
+  httpServerErrors.add(cancelled.status >= 500 && cancelled.status < 600);
   if (check(cancelled, { 'booking cancellation returns 204': (res) => res.status === 204 })) {
     bookingsCompleted.add(1);
   }

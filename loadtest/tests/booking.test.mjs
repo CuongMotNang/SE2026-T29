@@ -76,7 +76,8 @@ test('queries slots, creates and cancels only its own booking', async () => {
   assert.equal(run.calls[2].url, `http://demo:8000/api/appointments/${id}`);
   assert.equal(run.calls[2].params.tags.name, 'DELETE /api/appointments/:id');
   assert.ok(run.checks.every((check) => check.ok));
-  assert.deepEqual(run.metrics.bookings_completed, [1]);
+  assert.deepEqual(run.metrics.bookings_completed, [0, 1]);
+  assert.deepEqual(run.metrics.http_server_errors, [false, false, false]);
 });
 
 test('409 is an expected conflict and never triggers cancellation', async () => {
@@ -84,8 +85,9 @@ test('409 is an expected conflict and never triggers cancellation', async () => 
   run.script.default();
   assert.equal(run.calls.length, 2);
   assert.ok(run.calls[1].params.responseCallback.includes(409));
-  assert.deepEqual(run.metrics.booking_conflicts, [1]);
-  assert.deepEqual(run.metrics.bookings_completed, []);
+  assert.deepEqual(run.metrics.booking_conflicts, [0, 1]);
+  assert.deepEqual(run.metrics.bookings_completed, [0]);
+  assert.deepEqual(run.metrics.http_server_errors, [false, false]);
 });
 
 test('default arrival profiles target 10 HTTP requests/s for 10 minutes', async () => {
@@ -142,9 +144,26 @@ for (const [name, responses] of [
     const run = await loadBooking(responses);
     run.script.createAndCancelBooking();
     assert.ok(run.checks.some((check) => !check.ok));
-    assert.deepEqual(run.metrics.bookings_completed, []);
+    assert.deepEqual(run.metrics.bookings_completed, [0]);
+    if (['failed slots request', 'failed create', 'failed cancellation'].includes(name)) {
+      assert.equal(run.metrics.http_server_errors.filter(Boolean).length, 1);
+    }
     if (name !== 'failed cancellation') {
       assert.ok(run.calls.every((call) => call.method !== 'DELETE'));
     }
   });
 }
+
+test('E15 thresholds cover latency per route, errors, checks and insufficient load', async () => {
+  const { script } = await loadBooking([]);
+  const thresholds = JSON.parse(JSON.stringify(script.options.thresholds));
+  for (const route of ['GET /api/slots', 'POST /api/appointments', 'DELETE /api/appointments/:id']) {
+    assert.deepEqual(thresholds[`http_req_duration{name:${route}}`], ['p(95)<500']);
+  }
+  assert.deepEqual(thresholds.http_req_duration, ['p(95)<500']);
+  assert.deepEqual(thresholds.http_req_failed, ['rate<0.01']);
+  assert.deepEqual(thresholds.http_server_errors, ['rate<0.01']);
+  assert.deepEqual(thresholds.checks, ['rate>0.99']);
+  assert.deepEqual(thresholds.bookings_completed, ['count>0']);
+  assert.deepEqual(thresholds.dropped_iterations, ['count==0']);
+});

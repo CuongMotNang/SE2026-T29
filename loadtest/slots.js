@@ -5,6 +5,7 @@ import { Trend, Rate } from 'k6/metrics';
 // Custom metrics for granular observability
 export const slotsDuration = new Trend('slots_duration', true);
 export const slotsSuccessRate = new Rate('slots_success_rate');
+export const httpServerErrors = new Rate('http_server_errors');
 
 // Default test configuration and thresholds aligned with E15
 export const options = {
@@ -56,6 +57,7 @@ export function queryAvailableSlots(baseUrl = BASE_URL, dateStr = getTargetDate(
 
   const startTime = Date.now();
   const res = http.get(url, params);
+  httpServerErrors.add(res.status >= 500 && res.status < 600);
   const duration = Date.now() - startTime;
 
   slotsDuration.add(duration);
