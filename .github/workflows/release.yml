@@ -53,6 +53,8 @@ jobs:
 
       - name: Run test suite
         env:
+          # alembic reads BOOKING_DATABASE_URL; without it, it defaults to localhost:5432.
+          BOOKING_DATABASE_URL: postgresql+asyncpg://booking:booking@127.0.0.1:55432/booking_test
           TEST_DATABASE_URL: postgresql+asyncpg://booking:booking@127.0.0.1:55432/booking_test
         run: |
           cd backend
