@@ -24,6 +24,7 @@ export interface VersionInfo {
   release: string;
   commit_sha: string;
   environment?: string;
+  fault_active?: boolean;
 }
 
 export interface CreateAppointmentInput {

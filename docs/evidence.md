@@ -40,7 +40,7 @@ Các đường dẫn backend viết ngắn ở cùng hàng được hiểu là n
 | E12 | Deploy lỗi rollback được | Deploy/rollback scripts + smoke tests | Release drill lỗi rồi khôi phục | ≤5 phút; version cũ; smoke test pass; booking cũ còn | [Đạt cục bộ](evidence/2026-10-14-release-deploy.md) |
 | E13 | Dữ liệu tồn tại qua recreate | PostgreSQL volume | Tạo booking, recreate API rồi đọc lại | Row không mất | [Đạt trên CI](evidence/2026-10-21-container-ci.md) |
 | E14 | Release tương thích schema cũ | Alembic + migration review | Chạy code bản rollback với schema sau migration | Tạo/xem/hủy đều pass | [Review schema hiện tại đạt](evidence/2026-10-25-architecture-review.md); test lifecycle cục bộ chưa thay thế kiểm chứng hai release khi có migration mới |
-| E15 | Độ trễ đạt mục tiêu tham chiếu | Load script + histogram | 10 request/giây, 10 phút, recording | ≥95% dưới 500 ms; báo đủ VM/dataset/phiên bản | Chưa kiểm chứng |
+| E15 | Độ trễ đạt mục tiêu tham chiếu | [Load script](../loadtest/booking.js) + histogram | 10 request/giây, 10 phút, recording | ≥95% dưới 500 ms; báo đủ VM/dataset/phiên bản | [Script đã kiểm tra; E15 chưa kiểm chứng đủ 10 phút](evidence/loadtest/2026-10-27-week2-smoke.md) |
 | E16 | API chết vẫn được phát hiện | Blackbox probe + alert rule | Stop API trong môi trường drill | Probe fail, alert xuất hiện dù HTTP counter không tăng | [Đạt cục bộ cho probe và Prometheus alert](evidence/observability/2026-10-22-local-e16.md) |
 
 Test E03 dùng hai kết nối/transaction độc lập được khởi động đồng thời và lặp có kiểm soát. Gọi tuần tự hai lần chỉ kiểm chứng duplicate booking thông thường. SQLite/in-memory fake không chứng minh hành vi partial index/concurrency của PostgreSQL.

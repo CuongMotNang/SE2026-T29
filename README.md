@@ -94,11 +94,15 @@ SE2026-T29/
 | **TASK-004** | [Container hóa và CI](docs/tasks/TASK-004-container-ci.md) | M3 | **In Progress** | Nguyễn Mai Hoàng Anh | Dockerfile tối ưu multi-stage, CI workflow kiểm tra lint & test |
 | **TASK-005** | [Release, deploy và rollback](docs/tasks/TASK-005-release-deploy.md) | M4 | **Done** | Nguyễn Việt Anh | Release manifest, deploy/rollback automation, deploy lock, smoke test |
 | **TASK-006** | [Observability và cảnh báo](docs/tasks/TASK-006-observability.md) | M5 | **In Progress** | Vũ Thành Công | OpenTelemetry runtime, Grafana dashboards, Alert rules, Fault injection |
-| **TASK-007** | [Reliability demo và evidence](docs/tasks/TASK-007-reliability-demo.md) | M6 | **Todo** | Chưa phân công | Cần xác nhận owner trước khi chạy drill chung |
+| **TASK-007** | [Reliability demo và evidence](docs/tasks/TASK-007-reliability-demo.md) | M6 | **In Progress** | Nguyễn Việt Anh | Kịch bản diễn tập sự cố, bằng chứng cảnh báo và khôi phục hệ thống |
 
 TASK-001 do **Phạm Minh Cương (23001840)** phụ trách. Xem
 [review kiến trúc ngày 25/10](docs/evidence/2026-10-25-architecture-review.md) và
 [bảng Tasks](docs/tasks/README.md) để theo dõi trạng thái thống nhất.
+
+Đối chiếu tuần 2 ngày 28/10/2026: **48/50 đầu việc Done (96%)**; C058 và C060 vẫn
+`In Progress` vì còn thiếu required reviewer và lần deploy thật trên demo host. Xem
+[báo cáo đối chiếu tuần 2](docs/evidence/2026-10-28-week2-reconciliation.md).
 
 ---
 

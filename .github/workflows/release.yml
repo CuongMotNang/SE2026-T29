@@ -68,6 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
+      RELEASE_TAG: ${{ github.ref_name }}
       PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
     steps:
       - name: Checkout repository
@@ -141,15 +142,20 @@ jobs:
       - name: Generate release manifest
         run: |
           mkdir -p docs/releases
+          fault_args=()
+          if [[ "$RELEASE_TAG" == *-drill || "$RELEASE_TAG" == *-drill.* ]]; then
+            fault_args=(--fault-config deploy/drill-fault.json)
+          fi
           python -m scripts.release_manifest create \
-            --release "${{ github.ref_name }}" \
+            --release "$RELEASE_TAG" \
             --commit-sha "${{ github.sha }}" \
             --migration-revision "${{ steps.metadata.outputs.migration_revision }}" \
             --backend-repo "$BACKEND_IMAGE" \
             --backend-digest "${{ steps.metadata.outputs.backend_digest }}" \
             --frontend-repo "$FRONTEND_IMAGE" \
             --frontend-digest "${{ steps.build_frontend.outputs.digest }}" \
-            --output "docs/releases/${{ github.ref_name }}.json"
+            "${fault_args[@]}" \
+            --output "docs/releases/$RELEASE_TAG.json"
 
       - name: Upload manifest artifact
         uses: actions/upload-artifact@v7

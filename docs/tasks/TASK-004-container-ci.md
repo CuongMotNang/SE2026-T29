@@ -31,11 +31,10 @@
   [kết quả local](../evidence/frontend/2026-10-25-task-003-local.md).
 - Người phụ trách xác nhận CI trên commit tích hợp mới nhất trước khi chốt `Done`.
 
-## Đồng bộ trạng thái ngày 28/10/2026 — CD lên máy demo
+## Đối chiếu tuần 2 ngày 28/10/2026
 
-- Máy demo `booking-demo` (VM Multipass) có runner label `demo`; `deploy.yml` và `rollback.yml`
-  chạy trên runner này, state ở `/opt/booking/state`. Xem [demo-host.md](../devops/demo-host.md).
-- Release `v0.2.1` đã deploy qua pipeline, có duyệt ở environment `demo`; E08 đạt trên máy demo:
-  [bằng chứng 28/10](../evidence/2026-10-28-e08-demo-deploy.md).
-- Còn lại cho TASK-004: rollback qua `rollback.yml` trên máy demo cùng TASK-005/TASK-007, và deploy
-  observability stack lên máy demo (lịch tuần 4).
+- C051–C057 và C059 đã merge vào `main` qua PR #26.
+- C058 còn thiếu bằng chứng GitHub Environment `demo` có required reviewer thật.
+- C060 mới có rehearsal local, chưa có pipeline deploy thật và artifact E08 trên demo host.
+- TASK-004 tiếp tục `In Progress`; xem
+  [bảng đối chiếu tuần 2](../evidence/2026-10-28-week2-reconciliation.md).

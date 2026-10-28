@@ -2,6 +2,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LOADTEST_DIR = REPO_ROOT / "loadtest"
 
@@ -61,3 +63,21 @@ def test_loadtest_javascript_syntax():
             check=False,
         )
         assert result.returncode == 0, f"Syntax error in {filename}: {result.stderr}"
+
+
+def test_booking_scenario_behaviour():
+    node_executable = shutil.which("node")
+    if node_executable is None:
+        pytest.skip("Node.js is required for k6 scenario behaviour tests")
+    result = subprocess.run(
+        [
+            node_executable,
+            "--experimental-vm-modules",
+            "--test",
+            str(LOADTEST_DIR / "tests" / "booking.test.mjs"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
