@@ -19,7 +19,7 @@ Tài liệu này mô tả cách hoàn thiện CI/CD, deployment, observability, 
 
 ## 2. Hiện trạng
 
-Cập nhật ngày 27/10/2026.
+Cập nhật ngày 28/10/2026.
 
 **Đã có**
 
@@ -34,11 +34,13 @@ Cập nhật ngày 27/10/2026.
 - Đường deploy → deploy → rollback đã diễn tập cục bộ:
   [kết quả 27/10](../evidence/2026-10-27-cd-local-rehearsal.md).
 
+- Máy demo `booking-demo` và runner `demo` đã hoạt động; `v0.2.1` deploy qua pipeline, E08 đạt:
+  [kết quả 28/10](../evidence/2026-10-28-e08-demo-deploy.md).
+
 **Còn thiếu**
 
-1. Chưa có máy demo và runner đã đăng ký; environment `demo` chưa được tạo (cần quyền admin).
-2. Chưa có GitHub Release nào, nên chưa có lần deploy thật qua pipeline (E08 trên máy demo).
-3. Observability stack chưa được deploy cùng ứng dụng trên máy demo (lịch tuần 4).
+1. Chưa chạy `rollback.yml` trên máy demo (cần release thứ hai; E12 cùng TASK-005/TASK-007).
+2. Observability stack chưa được deploy cùng ứng dụng trên máy demo (lịch tuần 4).
 
 ## 3. Giai đoạn A — Hoàn thiện CI (TASK-004)
 
