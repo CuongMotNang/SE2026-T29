@@ -48,3 +48,10 @@ Chạy thử tải và incident drill để chứng minh khả năng phát hiệ
   image release qua Compose profile `migrate`. Rollback không chạy migration.
 - [Hướng dẫn chạy và evidence](../releases/drill-release.md).
 - Chưa chạy workflow mới trên máy demo; chưa tạo/push tag drill hoặc duyệt deployment.
+
+## Đối chiếu tuần 2 ngày 28/10/2026
+
+- C081–C090 đã hoàn thành ở mức code/test/tài liệu; smoke version check và rollback runbook vốn đã
+  có từ TASK-005, nay được liên kết lại đúng commit trong lịch.
+- TASK-007 vẫn `In Progress`: chưa chạy E15 đủ 10 phút, incident timeline và rollback drill thật
+  trên demo host. Xem [bảng đối chiếu](../evidence/2026-10-28-week2-reconciliation.md).
