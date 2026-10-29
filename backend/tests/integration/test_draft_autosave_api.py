@@ -36,6 +36,24 @@ async def seed(client, draft_id: UUID, revision: int, name: str) -> None:
     assert response.status_code == 200, f"seeding draft failed: {response.status_code}"
 
 
+async def wait_for_lock_waiters(factory, count: int, limit_seconds: float = 5.0) -> None:
+    """Poll until `count` backends are blocked on a lock touching appointment_drafts."""
+    deadline = asyncio.get_running_loop().time() + limit_seconds
+    while True:
+        async with factory() as session:
+            waiting = await session.scalar(
+                text(
+                    "SELECT count(*) FROM pg_stat_activity "
+                    "WHERE wait_event_type = 'Lock' AND query ILIKE '%appointment_drafts%'"
+                )
+            )
+        if waiting >= count:
+            return
+        if asyncio.get_running_loop().time() > deadline:
+            raise AssertionError(f"expected {count} lock waiters, saw {waiting}")
+        await asyncio.sleep(0.005)
+
+
 async def stored_revision(factory, draft_id: UUID) -> int | None:
     async with factory() as session:
         return await session.scalar(
@@ -205,10 +223,12 @@ async def test_tc10_stale_save_waiting_on_row_lock_does_not_overwrite(
         await blocker.execute(
             text("SELECT 1 FROM appointment_drafts WHERE id = :id FOR UPDATE"), {"id": draft_id}
         )
+        # No fixed sleeps: wait until PostgreSQL itself reports the request queued on the
+        # lock (a fixed 50 ms sleep failed 2/30 runs when compressed; evidence 08).
         newer = asyncio.create_task(client.put(f"/api/drafts/{draft_id}", json=body(7, "new")))
-        await asyncio.sleep(0.05)
+        await wait_for_lock_waiters(test_session_factory, 1)
         older = asyncio.create_task(client.put(f"/api/drafts/{draft_id}", json=body(6, "old")))
-        await asyncio.sleep(0.05)
+        await wait_for_lock_waiters(test_session_factory, 2)
         await blocker.rollback()  # release the lock
 
     newer_response, older_response = await asyncio.gather(newer, older)
