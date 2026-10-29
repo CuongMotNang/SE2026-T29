@@ -247,3 +247,26 @@ async def test_tc12_server_clock_is_not_used_to_order_saves(client, test_session
 
     assert response.status_code == 409
     assert await stored_revision(test_session_factory, draft_id) == 9
+
+
+# ---------------------------------------------------------------- added after mutation M4
+
+
+@pytest.mark.parametrize(
+    ("revision", "expected"),
+    [
+        (2**53 - 1, 200),  # largest revision a browser can send exactly
+        (2**53, 422),  # would silently lose precision in JavaScript
+        (0, 422),  # brand-new draft: must be a 422, not a DB CHECK violation (500)
+    ],
+)
+async def test_tc13_revision_boundaries_on_new_draft(
+    client, test_session_factory, revision, expected
+) -> None:
+    draft_id = uuid4()
+
+    response = await client.put(f"/api/drafts/{draft_id}", json=body(revision))
+
+    assert response.status_code == expected, response.text
+    stored = await stored_revision(test_session_factory, draft_id)
+    assert stored == (revision if expected == 200 else None)
