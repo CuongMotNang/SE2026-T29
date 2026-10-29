@@ -48,3 +48,11 @@ Chạy thử tải và incident drill để chứng minh khả năng phát hiệ
   image release qua Compose profile `migrate`. Rollback không chạy migration.
 - [Hướng dẫn chạy và evidence](../releases/drill-release.md).
 - Chưa chạy workflow mới trên máy demo; chưa tạo/push tag drill hoặc duyệt deployment.
+
+## Đối chiếu công việc thứ Tư và thứ Năm (C085–C088)
+
+- C086–C087 đã có từ commit `3df685d`: smoke test đối chiếu release và commit SHA từ
+  manifest với `/api/version`; deploy và rollback đều truyền giá trị của manifest đích.
+  Bộ kiểm thử có trường hợp đúng và sai release; bổ sung kiểm thử sai commit SHA.
+- C085 và C088 đã hoàn thành phần mã tại `2e48e1b` và `8e4b6d7`. Việc chạy workflow
+  và kiểm chứng rollback trên máy demo vẫn cần thực hiện để có evidence thực tế.
