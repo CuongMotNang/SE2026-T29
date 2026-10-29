@@ -75,6 +75,9 @@ async def test_tc03_get_unknown_draft_returns_404(client) -> None:
     response = await client.get(f"/api/drafts/{uuid4()}")
 
     assert response.status_code == 404
+    # A bare 404 would also pass when the route does not exist at all (it did on the
+    # baseline commit). The domain message proves the handler ran and found nothing.
+    assert response.json() == {"detail": "Draft was not found"}
 
 
 # ---------------------------------------------------------------- AC2 stale writes
