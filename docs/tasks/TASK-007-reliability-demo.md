@@ -56,3 +56,10 @@ Chạy thử tải và incident drill để chứng minh khả năng phát hiệ
   Bộ kiểm thử có trường hợp đúng và sai release; bổ sung kiểm thử sai commit SHA.
 - C085 và C088 đã hoàn thành phần mã tại `2e48e1b` và `8e4b6d7`. Việc chạy workflow
   và kiểm chứng rollback trên máy demo vẫn cần thực hiện để có evidence thực tế.
+
+## Đối chiếu tuần 2 ngày 28/10/2026
+
+- C081–C090 đã hoàn thành ở mức code/test/tài liệu; smoke version check và rollback runbook vốn đã
+  có từ TASK-005, nay được liên kết lại đúng commit trong lịch.
+- TASK-007 vẫn `In Progress`: chưa chạy E15 đủ 10 phút, incident timeline và rollback drill thật
+  trên demo host. Xem [bảng đối chiếu](../evidence/2026-10-28-week2-reconciliation.md).

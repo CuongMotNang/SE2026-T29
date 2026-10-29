@@ -100,6 +100,10 @@ TASK-001 do **Phạm Minh Cương (23001840)** phụ trách. Xem
 [review kiến trúc ngày 25/10](docs/evidence/2026-10-25-architecture-review.md) và
 [bảng Tasks](docs/tasks/README.md) để theo dõi trạng thái thống nhất.
 
+Đối chiếu tuần 2 ngày 28/10/2026: **48/50 đầu việc Done (96%)**; C058 và C060 vẫn
+`In Progress` vì còn thiếu required reviewer và lần deploy thật trên demo host. Xem
+[báo cáo đối chiếu tuần 2](docs/evidence/2026-10-28-week2-reconciliation.md).
+
 ---
 
 ## 4. Hướng dẫn phát triển cục bộ
