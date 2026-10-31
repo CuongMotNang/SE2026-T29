@@ -1,10 +1,8 @@
 """Unit tests for drill timeline recorder (TASK-007 / C134)."""
 
-import json
 from datetime import UTC, datetime, timedelta
 
-import pytest
-from scripts.drill_timeline import DrillTimeline, TimelineEvent, default_timeline_path, main
+from scripts.drill_timeline import DrillTimeline, main
 
 T0 = datetime(2026, 11, 2, 10, 0, 0, tzinfo=UTC)
 
@@ -13,7 +11,9 @@ def test_record_events_and_ordering():
     timeline = DrillTimeline(drill_id="test-drill-01")
     timeline.record_event("drill_start", "Deploy v0.2.0-drill", now=T0)
     timeline.record_event("alert_fired", "Alertmanager fired", now=T0 + timedelta(seconds=75))
-    timeline.record_event("investigation_start", "Check Tempo/Loki", now=T0 + timedelta(seconds=120))
+    timeline.record_event(
+        "investigation_start", "Check Tempo/Loki", now=T0 + timedelta(seconds=120)
+    )
     timeline.record_event("rollback_start", "Trigger rollback", now=T0 + timedelta(seconds=160))
     timeline.record_event("rollback_complete", "Smoke test pass", now=T0 + timedelta(seconds=280))
     timeline.record_event("service_restored", "Fully healthy", now=T0 + timedelta(seconds=300))
@@ -88,7 +88,14 @@ def test_timeline_cli_flow(tmp_path, monkeypatch, capsys):
 
     monkeypatch.setattr(
         "sys.argv",
-        ["drill_timeline.py", "record", "--event", "rollback_complete", "--file", str(timeline_file)],
+        [
+            "drill_timeline.py",
+            "record",
+            "--event",
+            "rollback_complete",
+            "--file",
+            str(timeline_file),
+        ],
     )
     main()
 

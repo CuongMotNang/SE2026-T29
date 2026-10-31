@@ -2,10 +2,8 @@
 
 from datetime import UTC, datetime
 
-import pytest
 from scripts.booking_integrity import (
     BookingRecord,
-    IntegrityReport,
     IntegritySnapshot,
     verify_integrity,
 )
@@ -14,9 +12,15 @@ T0 = datetime(2026, 11, 2, 12, 0, 0, tzinfo=UTC)
 
 
 def test_booking_record_matching():
-    r1 = BookingRecord(id="1", customer_name="Alice", starts_at="2026-11-03T10:00:00", status="CONFIRMED")
-    r2 = BookingRecord(id="1", customer_name="Alice", starts_at="2026-11-03T10:00:00", status="CONFIRMED")
-    r3 = BookingRecord(id="1", customer_name="Alice", starts_at="2026-11-03T10:00:00", status="CANCELLED")
+    r1 = BookingRecord(
+        id="1", customer_name="Alice", starts_at="2026-11-03T10:00:00", status="CONFIRMED"
+    )
+    r2 = BookingRecord(
+        id="1", customer_name="Alice", starts_at="2026-11-03T10:00:00", status="CONFIRMED"
+    )
+    r3 = BookingRecord(
+        id="1", customer_name="Alice", starts_at="2026-11-03T10:00:00", status="CANCELLED"
+    )
 
     assert r1.matches(r2) is True
     assert r1.matches(r3) is False
@@ -29,8 +33,18 @@ def test_integrity_snapshot_persistence(tmp_path):
         base_url="http://localhost:8000",
         count=2,
         bookings={
-            "b-1": {"id": "b-1", "customer_name": "Bob", "starts_at": "2026-11-03T09:00:00", "status": "CONFIRMED"},
-            "b-2": {"id": "b-2", "customer_name": "Carol", "starts_at": "2026-11-03T10:00:00", "status": "CONFIRMED"},
+            "b-1": {
+                "id": "b-1",
+                "customer_name": "Bob",
+                "starts_at": "2026-11-03T09:00:00",
+                "status": "CONFIRMED",
+            },
+            "b-2": {
+                "id": "b-2",
+                "customer_name": "Carol",
+                "starts_at": "2026-11-03T10:00:00",
+                "status": "CONFIRMED",
+            },
         },
     )
     snapshot.save(target)
@@ -48,14 +62,30 @@ def test_verify_integrity_all_intact():
         base_url="http://localhost:8000",
         count=2,
         bookings={
-            "b-1": {"id": "b-1", "customer_name": "Bob", "starts_at": "2026-11-03T09:00:00", "status": "CONFIRMED"},
-            "b-2": {"id": "b-2", "customer_name": "Carol", "starts_at": "2026-11-03T10:00:00", "status": "CONFIRMED"},
+            "b-1": {
+                "id": "b-1",
+                "customer_name": "Bob",
+                "starts_at": "2026-11-03T09:00:00",
+                "status": "CONFIRMED",
+            },
+            "b-2": {
+                "id": "b-2",
+                "customer_name": "Carol",
+                "starts_at": "2026-11-03T10:00:00",
+                "status": "CONFIRMED",
+            },
         },
     )
     current = [
-        BookingRecord(id="b-1", customer_name="Bob", starts_at="2026-11-03T09:00:00", status="CONFIRMED"),
-        BookingRecord(id="b-2", customer_name="Carol", starts_at="2026-11-03T10:00:00", status="CONFIRMED"),
-        BookingRecord(id="b-3", customer_name="New Guy", starts_at="2026-11-03T11:00:00", status="CONFIRMED"),
+        BookingRecord(
+            id="b-1", customer_name="Bob", starts_at="2026-11-03T09:00:00", status="CONFIRMED"
+        ),
+        BookingRecord(
+            id="b-2", customer_name="Carol", starts_at="2026-11-03T10:00:00", status="CONFIRMED"
+        ),
+        BookingRecord(
+            id="b-3", customer_name="New Guy", starts_at="2026-11-03T11:00:00", status="CONFIRMED"
+        ),
     ]
     report = verify_integrity(baseline, current, now=T0)
     assert report.is_valid is True
@@ -73,12 +103,24 @@ def test_verify_integrity_missing_booking():
         base_url="http://localhost:8000",
         count=2,
         bookings={
-            "b-1": {"id": "b-1", "customer_name": "Bob", "starts_at": "2026-11-03T09:00:00", "status": "CONFIRMED"},
-            "b-2": {"id": "b-2", "customer_name": "Carol", "starts_at": "2026-11-03T10:00:00", "status": "CONFIRMED"},
+            "b-1": {
+                "id": "b-1",
+                "customer_name": "Bob",
+                "starts_at": "2026-11-03T09:00:00",
+                "status": "CONFIRMED",
+            },
+            "b-2": {
+                "id": "b-2",
+                "customer_name": "Carol",
+                "starts_at": "2026-11-03T10:00:00",
+                "status": "CONFIRMED",
+            },
         },
     )
     current = [
-        BookingRecord(id="b-1", customer_name="Bob", starts_at="2026-11-03T09:00:00", status="CONFIRMED"),
+        BookingRecord(
+            id="b-1", customer_name="Bob", starts_at="2026-11-03T09:00:00", status="CONFIRMED"
+        ),
     ]
     report = verify_integrity(baseline, current, now=T0)
     assert report.is_valid is False
@@ -92,11 +134,18 @@ def test_verify_integrity_corrupted_booking():
         base_url="http://localhost:8000",
         count=1,
         bookings={
-            "b-1": {"id": "b-1", "customer_name": "Bob", "starts_at": "2026-11-03T09:00:00", "status": "CONFIRMED"},
+            "b-1": {
+                "id": "b-1",
+                "customer_name": "Bob",
+                "starts_at": "2026-11-03T09:00:00",
+                "status": "CONFIRMED",
+            },
         },
     )
     current = [
-        BookingRecord(id="b-1", customer_name="Bob", starts_at="2026-11-03T09:00:00", status="CANCELLED"),
+        BookingRecord(
+            id="b-1", customer_name="Bob", starts_at="2026-11-03T09:00:00", status="CANCELLED"
+        ),
     ]
     report = verify_integrity(baseline, current, now=T0)
     assert report.is_valid is False

@@ -186,7 +186,9 @@ def main() -> None:
             report = verify_integrity(baseline, current_records)
 
             if args.report:
-                Path(args.report).write_text(json.dumps(asdict(report), indent=2) + "\n", encoding="utf-8")
+                Path(args.report).write_text(
+                    json.dumps(asdict(report), indent=2) + "\n", encoding="utf-8"
+                )
 
             print(f"Baseline bookings : {report.baseline_count}")
             print(f"Current bookings  : {report.current_count}")
@@ -198,7 +200,11 @@ def main() -> None:
             if report.is_valid:
                 print("\n[PASS] 100% pre-existing bookings preserved. Zero data loss.")
             else:
-                print(f"\n[FAIL] Integrity violation! Missing: {report.missing_ids}, Corrupted: {report.corrupted_ids}", file=sys.stderr)
+                print(
+                    f"\n[FAIL] Integrity violation! Missing: {report.missing_ids}, "
+                    f"Corrupted: {report.corrupted_ids}",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
         except Exception as e:
             print(f"[ERROR] Verification failed: {e}", file=sys.stderr)
